@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Library — Paper Manager{% endblock %}
+{% block content %}
+<section class="library-head">
+  <h1>Library</h1>
+
+  <form class="searchbar" method="get" action="/library">
+    <input type="search" name="q" value="{{ q or '' }}" placeholder="Search your library…" autofocus>
+    <button type="submit">Search</button>
+    {% if q %}<a class="muted small" href="/library">clear</a>{% endif %}
+  </form>
+
+  <form
+    class="upload"
+    hx-post="/papers"
+    hx-target="#toast"
+    hx-swap="innerHTML"
+    hx-encoding="multipart/form-data">
+    <label class="filebtn">
+      <input type="file" name="pdfs" accept="application/pdf" multiple>
+      <span>Upload PDF(s)</span>
+    </label>
+    <input type="text" name="tags" placeholder="optional tags, comma-separated">
+    <button type="submit">Add</button>
+  </form>
+
+  <form
+    hx-post="/ingest/inbox"
+    hx-target="#toast"
+    hx-swap="innerHTML">
+    <button type="submit" class="ghost">Scan iCloud inbox</button>
+  </form>
+</section>
+
+<aside class="filters">
+  <h3>Tags</h3>
+  <ul>
+    {% for t in all_tags[:30] %}
+      <li><a href="/library?tag={{ t }}" {% if tag == t %}class="active"{% endif %}>{{ t }}</a></li>
+    {% endfor %}
+  </ul>
+  <h3>Year</h3>
+  <ul>
+    {% for y in all_years[:12] %}
+      <li><a href="/library?year={{ y }}" {% if year == y %}class="active"{% endif %}>{{ y }}</a></li>
+    {% endfor %}
+  </ul>
+  <h3>Sort</h3>
+  <ul>
+    <li><a href="/library?sort=recent">Recently added</a></li>
+    <li><a href="/library?sort=year">By year</a></li>
+    <li><a href="/library?sort=title">By title</a></li>
+  </ul>
+</aside>
+
+<section class="paper-list">
+  {% if not papers %}
+    <p class="empty">No papers match these filters.</p>
+  {% endif %}
+  {% for p in papers %}
+    <a class="row" href="/paper/{{ p.id }}">
+      <div class="row-title">{{ p.title }}</div>
+      <div class="row-meta">
+        {{ p.year or '—' }} ·
+        {{ p.authors[:3] | join(', ') }}{% if p.authors|length > 3 %} et al.{% endif %}
+      </div>
+      {% set tags = (p.user_tags or []) + (p.auto.tags or []) %}
+      {% if tags %}
+        <div class="row-tags">
+          {% for t in tags[:5] %}<span class="tag">{{ t }}</span>{% endfor %}
+        </div>
+      {% endif %}
+    </a>
+  {% endfor %}
+</section>
+{% endblock %}

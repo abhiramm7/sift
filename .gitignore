@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+.DS_Store
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Per-user config (paths, model overrides). Each user creates their own from config.toml.example.
+config.toml
+
+# Static site export — published from a separate site repo, not the code repo.
+site/

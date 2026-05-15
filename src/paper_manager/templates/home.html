@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Paper Manager{% endblock %}
+{% block content %}
+
+{% if hero %}
+<section class="hero">
+  <span class="eyebrow">{{ hero.reason or 'Featured' }}</span>
+  <h1>{{ hero.title }}</h1>
+  <p class="hero-meta">
+    {% if hero.authors %}{{ hero.authors[:5] | join(', ') }}{% if hero.authors|length > 5 %} et al.{% endif %}{% endif %}
+    {% if hero.year %} · {{ hero.year }}{% endif %}
+  </p>
+  <div class="hero-actions">
+    <a class="btn primary" href="/paper/{{ hero.paper_id }}">Read →</a>
+    <a class="btn" href="/paper/{{ hero.paper_id }}/pdf" target="_blank">PDF</a>
+  </div>
+</section>
+{% else %}
+<section class="hero">
+  <span class="eyebrow">Empty library</span>
+  <h1>Drop a PDF.</h1>
+  <p class="hero-meta">
+    Place PDFs in <code>~/Library/Mobile Documents/com~apple~CloudDocs/PaperManager/inbox/</code> and run
+    <code>paper sync-inbox</code>, or upload from the <a href="/library">library</a>.
+  </p>
+</section>
+{% endif %}
+
+{% if topics %}
+<section class="rec-row">
+  <div class="rec-head">
+    <span class="rec-num">00</span>
+    <span class="rec-title">Explore by topic</span>
+    <span class="rec-count">{{ topics|length }} tags</span>
+  </div>
+  <div class="topic-strip">
+    {% for t in topics %}
+      <a class="topic-chip" href="/library?tag={{ t.tag }}">
+        {{ t.tag }}<span class="topic-count">{{ t.count }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% for row in rows %}
+  <section class="rec-row">
+    <div class="rec-head">
+      <span class="rec-num">{{ '%02d' | format(loop.index) }}</span>
+      <span class="rec-title">{{ row.title }}</span>
+      <span class="rec-count">{{ row.papers|length }} paper{{ '' if row.papers|length == 1 else 's' }}</span>
+    </div>
+    <div class="rec-strip">
+      {% for p in row.papers %}
+        <a class="card" href="/paper/{{ p.paper_id }}">
+          <span class="card-num">{{ '%02d' | format(loop.index) }} / {{ '%02d' | format(loop.length) }}</span>
+          <div class="card-title">{{ p.title }}</div>
+          <div class="card-meta">
+            {% if p.year %}{{ p.year }}{% endif %}{% if p.year and p.authors %} · {% endif %}{% if p.authors %}{{ p.authors[:2] | join(', ') }}{% if p.authors|length > 2 %} et al.{% endif %}{% endif %}
+          </div>
+          {% if p.reason %}<div class="card-reason">{{ p.reason }}</div>{% endif %}
+          {% if p.tags %}
+            <div class="card-tags">{% for t in p.tags[:3] %}<span class="tag">{{ t }}</span>{% endfor %}</div>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+{% endfor %}
+
+{% if not rows and not hero %}
+<section class="empty">No recommendations yet. Add papers, rate a few, and rows will populate.</section>
+{% endif %}
+
+{% endblock %}

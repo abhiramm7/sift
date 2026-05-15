@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Papers</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="./static/site.css">
+</head>
+<body>
+<div class="academic">
+  <header class="academic-head">
+    <h1>Papers</h1>
+    <p class="academic-sub">{{ total }} paper{{ '' if total == 1 else 's' }} indexed. Click any entry to read the summary.</p>
+  </header>
+
+  {% if not grouped %}
+    <p class="academic-empty">No papers yet.</p>
+  {% endif %}
+
+  {% for year, papers in grouped %}
+    <section class="year-block">
+      <h2 class="year-heading">{{ year }}</h2>
+      {% for p in papers %}
+        <article class="paper-entry" id="p-{{ p.id }}">
+          <div class="paper-entry-head" data-toggle="p-{{ p.id }}">
+            <div class="paper-thumb" data-hash="{{ p.id }}"></div>
+            <div class="paper-entry-text">
+              <div class="paper-entry-title">{{ p.title }}</div>
+              <div class="paper-entry-meta">
+                {% if p.authors %}{{ p.authors[:6] | join(', ') }}{% if p.authors|length > 6 %} et al.{% endif %}{% endif %}
+                {% if p.venue %}<span class="venue">· <em>{{ p.venue }}</em></span>{% endif %}
+                {% if p.year %}<span class="year">· {{ p.year }}</span>{% endif %}
+              </div>
+              {% if p.tldr %}<p class="paper-entry-tldr">{{ p.tldr }}</p>{% endif %}
+              <div class="paper-entry-links">
+                {% if p.doi %}<a href="https://doi.org/{{ p.doi }}" target="_blank">[doi]</a>{% endif %}
+                {% if p.arxiv_id %}<a href="https://arxiv.org/abs/{{ p.arxiv_id }}" target="_blank">[arxiv]</a>{% endif %}
+                <a href="{{ url_for_paper(p.id) }}">[detail]</a>
+                {% set tags = (p.user_tags or []) + (p.auto.tags or []) %}
+                {% for t in tags[:5] %}<span class="entry-tag">{{ t }}</span>{% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="paper-entry-body">
+            <div class="summary-md">{{ p.summary | markdown }}</div>
+            {% if p.figures %}
+              <div class="figures-block">
+                <h4 class="figures-head">Figures from the paper</h4>
+                <div class="figures-grid">
+                  {% for f in p.figures %}
+                    <figure class="figure-tile">
+                      <a href="./figures/{{ p.id }}/{{ f.filename }}" target="_blank">
+                        <img src="./figures/{{ p.id }}/{{ f.filename }}" alt="figure {{ f.index }}, page {{ f.page }}" loading="lazy">
+                      </a>
+                      <figcaption>Fig. {{ f.index }} · page {{ f.page }}</figcaption>
+                    </figure>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if p.auto.methods or p.auto.datasets or p.auto.claims %}
+              <div class="academic-auto">
+                {% if p.auto.methods %}<h4>Methods</h4><ul>{% for m in p.auto.methods %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
+                {% if p.auto.datasets %}<h4>Datasets</h4><ul>{% for d in p.auto.datasets %}<li>{{ d }}</li>{% endfor %}</ul>{% endif %}
+                {% if p.auto.claims %}<h4>Claims</h4><ul>{% for c in p.auto.claims %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+              </div>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% endfor %}
+
+  <footer class="academic-footer">
+    Generated locally with <a href="https://github.com/" target="_blank">paper_manager</a>.
+  </footer>
+</div>
+<script src="./static/site.js"></script>
+</body>
+</html>

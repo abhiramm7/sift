@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ paper.title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../static/site.css">
+</head>
+<body>
+<div class="academic">
+  <p class="back-link"><a href="../index.html">← back to papers</a></p>
+
+  <article class="paper-detail">
+    <header>
+      <h1>{{ paper.title }}</h1>
+      <p class="paper-detail-meta">
+        {% if paper.authors %}{{ paper.authors | join(', ') }}{% endif %}
+        {% if paper.venue %} · <em>{{ paper.venue }}</em>{% endif %}
+        {% if paper.year %} · {{ paper.year }}{% endif %}
+      </p>
+      <p class="paper-entry-links">
+        {% if paper.doi %}<a href="https://doi.org/{{ paper.doi }}" target="_blank">[doi]</a>{% endif %}
+        {% if paper.arxiv_id %}<a href="https://arxiv.org/abs/{{ paper.arxiv_id }}" target="_blank">[arxiv]</a>{% endif %}
+        {% set tags = (paper.user_tags or []) + (paper.auto.tags or []) %}
+        {% for t in tags %}<span class="entry-tag">{{ t }}</span>{% endfor %}
+      </p>
+    </header>
+
+    <div class="summary-md">{{ paper.summary | markdown }}</div>
+
+    {% if paper.figures %}
+      <div class="figures-block">
+        <h3 class="figures-head">Figures from the paper</h3>
+        <div class="figures-grid">
+          {% for f in paper.figures %}
+            <figure class="figure-tile">
+              <a href="../figures/{{ paper.id }}/{{ f.filename }}" target="_blank">
+                <img src="../figures/{{ paper.id }}/{{ f.filename }}" alt="figure {{ f.index }}, page {{ f.page }}" loading="lazy">
+              </a>
+              <figcaption>Fig. {{ f.index }} · page {{ f.page }}</figcaption>
+            </figure>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if paper.auto.methods or paper.auto.datasets or paper.auto.claims %}
+      <div class="academic-auto">
+        {% if paper.auto.methods %}<h4>Methods</h4><ul>{% for m in paper.auto.methods %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
+        {% if paper.auto.datasets %}<h4>Datasets</h4><ul>{% for d in paper.auto.datasets %}<li>{{ d }}</li>{% endfor %}</ul>{% endif %}
+        {% if paper.auto.claims %}<h4>Claims</h4><ul>{% for c in paper.auto.claims %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endif %}
+  </article>
+
+  <footer class="academic-footer">
+    Generated locally with paper_manager.
+  </footer>
+</div>
+</body>
+</html>

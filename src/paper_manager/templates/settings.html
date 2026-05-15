@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Settings — Paper Manager{% endblock %}
+{% block content %}
+<section class="settings">
+  <h1>Settings</h1>
+  <table>
+    <tr><th>iCloud root</th><td><code>{{ icloud_root }}</code></td></tr>
+    <tr><th>SQLite cache</th><td><code>{{ sqlite_path }}</code></td></tr>
+    <tr><th>Papers</th><td>{{ paper_count }}</td></tr>
+    <tr><th>Chunks</th><td>{{ chunk_count }}</td></tr>
+    <tr><th>Claude model</th><td><code>{{ claude_model }}</code></td></tr>
+    <tr><th>Embedding model</th><td><code>{{ embed_model }}</code> (via Ollama)</td></tr>
+    <tr><th>Ollama</th><td><code>{{ ollama_status }}</code></td></tr>
+    <tr><th>Claude</th><td>via local <code>claude</code> CLI</td></tr>
+  </table>
+
+  <form hx-post="/settings/rebuild-cache" hx-target="#toast" hx-swap="innerHTML">
+    <button type="submit" class="ghost">Rebuild cache from iCloud</button>
+    <span class="muted small">Re-embeds every chunk via Voyage. A few minutes for a full library.</span>
+  </form>
+</section>
+{% endblock %}
