@@ -41,7 +41,8 @@ Return ONLY a JSON object matching this schema (no prose, no code fences):
     "methods": string[],       // concrete methods / techniques used
     "datasets": string[],      // datasets evaluated on, if any
     "claims": string[],        // 2-5 key claims, each one sentence
-    "key_terms": string[]      // distinctive terminology
+    "key_terms": string[],     // distinctive terminology
+    "code_links": string[]     // URLs of code repos / implementations referenced by the paper (github, gitlab, huggingface, paperswithcode, etc.) — empty array if none
   }
 }
 
@@ -153,7 +154,7 @@ def summarize_and_extract(
     meta.setdefault("doi", None)
     meta.setdefault("arxiv_id", None)
     auto = meta.setdefault("auto", {})
-    for k in ("tags", "methods", "datasets", "claims", "key_terms"):
+    for k in ("tags", "methods", "datasets", "claims", "key_terms", "code_links"):
         auto.setdefault(k, [])
     meta["summary"] = summary
     return meta

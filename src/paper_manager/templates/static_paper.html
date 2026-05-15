@@ -21,6 +21,7 @@
       <p class="paper-entry-links">
         {% if paper.doi %}<a href="https://doi.org/{{ paper.doi }}" target="_blank">[doi]</a>{% endif %}
         {% if paper.arxiv_id %}<a href="https://arxiv.org/abs/{{ paper.arxiv_id }}" target="_blank">[arxiv]</a>{% endif %}
+        {% for cl in paper.auto.code_links or [] %}<a href="{{ cl.url }}" target="_blank">[{{ cl.host }}]</a>{% endfor %}
         {% set tags = (paper.user_tags or []) + (paper.auto.tags or []) %}
         {% for t in tags %}<span class="entry-tag">{{ t }}</span>{% endfor %}
       </p>

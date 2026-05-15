@@ -22,6 +22,15 @@
       </div>
     {% endif %}
 
+    {% if paper.auto.code_links %}
+      <div class="code-links">
+        <span class="code-links-label">Code:</span>
+        {% for cl in paper.auto.code_links %}
+          <a href="{{ cl.url }}" target="_blank" rel="noopener">{{ cl.host }} ↗</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <div class="rating" id="rating-{{ paper.id }}">
       <button hx-post="/paper/{{ paper.id }}/rate" hx-vals='{"rating": 1}'  hx-target="#rating-{{ paper.id }}" hx-swap="outerHTML">{% if prefs.rating == 1 %}★{% else %}☆{% endif %} like</button>
       <button hx-post="/paper/{{ paper.id }}/rate" hx-vals='{"rating": -1}' hx-target="#rating-{{ paper.id }}" hx-swap="outerHTML">{% if prefs.rating == -1 %}▼{% else %}▽{% endif %} skip</button>

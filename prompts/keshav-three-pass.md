@@ -36,6 +36,7 @@ Produce exactly this template, in this order, filling in every field. Use "Not s
 **Main thrust:** {1–2 sentences a reader could use to summarize this paper to a colleague at a whiteboard.}
 **Supporting evidence:** {3–5 bullets — the headline numbers, experiments, or proofs that back the thrust. Include units.}
 **Figures & tables:** {Which figures/tables carry the argument. Are axes labeled? Are error bars or confidence intervals shown? Is statistical significance reported? Flag visualization weaknesses.}
+**Implementation:** {Is code released? Quote the repo URL if the paper gives one. What language/framework? Are seeds, hyperparameters, and dataset splits documented enough to reproduce? Note any reliance on private data. "Not stated." if the paper is silent on code.}
 **Follow-up references:** {2–4 cited works most worth reading next, with a phrase each about why.}
 
 ## Third pass — critique

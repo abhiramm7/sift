@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import claude, embed, figures, pdf, storage
+from . import claude, code_links, embed, figures, pdf, storage
 from .config import Config
 from .db import transaction, vector_to_blob
 from .storage import PaperMeta, now_iso
@@ -66,6 +66,10 @@ def ingest_pdf(
     arxiv_id = raw.get("arxiv_id")
     auto = raw.get("auto") or {}
     summary = raw.get("summary") or ""
+    auto["code_links"] = code_links.merge_with_claude(
+        code_links.find(extracted.full_text),
+        auto.get("code_links"),
+    )
     storage.write_summary(cfg, paper_id, summary)
 
     chunks = [c for c in pdf.chunk(extracted) if c.get("text", "").strip()]
@@ -201,6 +205,9 @@ def ingest_text(
     arxiv_id = raw.get("arxiv_id")
     auto = raw.get("auto") or {}
     summary = raw.get("summary") or ""
+    auto["code_links"] = code_links.merge_with_claude(
+        code_links.find(text), auto.get("code_links"),
+    )
     storage.write_summary(cfg, paper_id, summary)
 
     extracted = pdf.ExtractedPdf(full_text=text, pages=[pdf.PageText(page=1, text=text)], page_count=1)

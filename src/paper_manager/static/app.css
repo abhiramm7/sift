@@ -303,6 +303,23 @@ button:hover { background: var(--accent); color: var(--bg); }
 .paper header .paper-links a:hover { color: var(--accent); border-color: var(--accent); }
 .paper-id { font-family: var(--mono); color: var(--muted); font-size: 11px; }
 
+.code-links {
+  margin-top: 12px;
+  font-family: var(--mono); font-size: 12px;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+}
+.code-links-label {
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.code-links a {
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 3px 9px;
+  text-decoration: none;
+}
+.code-links a:hover { background: var(--ink); color: var(--bg); }
+
 .rating, .flags { margin-top: 14px; display: flex; gap: 8px; }
 .rating button, .flags button { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
 .rating button:hover, .flags button:hover { background: var(--ink); color: var(--bg); }
