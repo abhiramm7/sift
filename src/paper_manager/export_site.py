@@ -50,8 +50,11 @@ def export(cfg: Config, conn: sqlite3.Connection, out_dir: Path) -> dict:
         p["figures"] = _copy_figures(cfg, p["id"], out_dir)
 
     grouped = _group_by_year(papers)
+    hero = papers[0] if papers else None
+    recent = papers[:8]
+    topics = _top_topics(papers, limit=12)
 
-    _render_index(env, out_dir, grouped, total=len(papers))
+    _render_index(env, out_dir, grouped, total=len(papers), hero=hero, recent=recent, topics=topics)
     for p in papers:
         _render_paper(env, out_dir, p)
 
@@ -116,10 +119,23 @@ def _group_by_year(papers: list[dict]) -> list[tuple[str, list[dict]]]:
     return [(y, by_year[y]) for y in years]
 
 
-def _render_index(env, out_dir: Path, grouped, total: int) -> None:
+def _render_index(env, out_dir: Path, grouped, total: int, hero, recent, topics) -> None:
     tpl = env.get_template("static_index.html")
-    html = tpl.render(grouped=grouped, total=total)
+    html = tpl.render(
+        grouped=grouped, total=total,
+        hero=hero, recent=recent, topics=topics,
+    )
     (out_dir / "index.html").write_text(html, encoding="utf-8")
+
+
+def _top_topics(papers: list[dict], limit: int) -> list[dict]:
+    counts: dict[str, int] = {}
+    for p in papers:
+        tags = set(p.get("user_tags", [])) | set((p.get("auto") or {}).get("tags", []))
+        for t in tags:
+            counts[t] = counts.get(t, 0) + 1
+    ordered = sorted(counts.items(), key=lambda kv: -kv[1])[:limit]
+    return [{"tag": t, "count": c} for t, c in ordered]
 
 
 def _render_paper(env, out_dir: Path, paper: dict) -> None:
