@@ -58,6 +58,28 @@ async def rate(request: Request, paper_id: str, rating: int | None = Form(defaul
     return HTMLResponse(_rating_widget(paper_id, user_prefs))
 
 
+@router.post("/quick-rate/{paper_id}")
+async def quick_rate(request: Request, paper_id: str, rating: int = Form(...)):
+    """Compact rate endpoint used by card tiles on /home. 0 clears, 1 = like, -1 = skip."""
+    cfg = request.app.state.cfg
+    conn = request.app.state.db
+    new_rating: int | None = rating if rating in (1, -1) else None
+    prefs.set_rating(cfg, conn, paper_id, new_rating)
+    state = _state_for(new_rating)
+    templates = request.app.state.templates
+    return templates.TemplateResponse(
+        request, "_card_rate.html", {"paper_id": paper_id, "state": state}
+    )
+
+
+def _state_for(rating: int | None) -> str:
+    if rating == 1:
+        return "up"
+    if rating == -1:
+        return "down"
+    return "none"
+
+
 @router.post("/paper/{paper_id}/flag")
 async def flag(
     request: Request,

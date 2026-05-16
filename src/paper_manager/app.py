@@ -50,13 +50,15 @@ def create_app() -> FastAPI:
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    from .routes import home, library, paper, papers, ingest, settings  # noqa: E402
+    from .routes import home, library, manage, paper, papers, ingest, discover, settings  # noqa: E402
 
     app.include_router(home.router)
     app.include_router(library.router)
     app.include_router(paper.router)
     app.include_router(papers.router)
+    app.include_router(manage.router)
     app.include_router(ingest.router)
+    app.include_router(discover.router)
     app.include_router(settings.router)
 
     @app.exception_handler(404)

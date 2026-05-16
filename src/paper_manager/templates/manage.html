@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Manage — Paper Manager{% endblock %}
+{% block content %}
+<section class="manage">
+  <header class="manage-head">
+    <h1>Manage library</h1>
+    <p class="muted small">{{ counts.paper }} paper{{ '' if counts.paper == 1 else 's' }} · {{ counts.book }} book{{ '' if counts.book == 1 else 's' }} · {{ counts.report }} report{{ '' if counts.report == 1 else 's' }}</p>
+  </header>
+
+  <form class="manage-filters" method="get" action="/manage">
+    <input type="search" name="q" value="{{ q or '' }}" placeholder="Filter by title or author…">
+    <div class="kind-pills">
+      <a href="/manage" class="pill {{ 'active' if not filter_kind else '' }}">All</a>
+      <a href="/manage?kind=paper" class="pill {{ 'active' if filter_kind == 'paper' else '' }}">Papers</a>
+      <a href="/manage?kind=book" class="pill {{ 'active' if filter_kind == 'book' else '' }}">Books</a>
+      <a href="/manage?kind=report" class="pill {{ 'active' if filter_kind == 'report' else '' }}">Reports</a>
+    </div>
+    {% if q %}<button type="submit">Search</button>{% endif %}
+  </form>
+
+  <table class="manage-table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Year</th>
+        <th>Pages</th>
+        <th>Kind</th>
+        <th>Tags</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in papers %}
+        {% include "_manage_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if not papers %}<p class="empty">No papers match.</p>{% endif %}
+</section>
+{% endblock %}

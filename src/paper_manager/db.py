@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS papers (
     added_at     TEXT NOT NULL,
     sha256       TEXT NOT NULL,
     source       TEXT NOT NULL,
+    kind         TEXT NOT NULL DEFAULT 'paper',  -- 'paper' | 'book' | 'report'
+    pages        INTEGER,
     user_tags    TEXT NOT NULL DEFAULT '[]',
     auto         TEXT NOT NULL DEFAULT '{}',
     summary      TEXT NOT NULL DEFAULT '',
@@ -101,7 +103,17 @@ def connect(path: Path) -> sqlite3.Connection:
 
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    _migrate(conn)
     conn.commit()
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Add columns that may be missing on older DBs. Idempotent."""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(papers)").fetchall()}
+    if "kind" not in cols:
+        conn.execute("ALTER TABLE papers ADD COLUMN kind TEXT NOT NULL DEFAULT 'paper'")
+    if "pages" not in cols:
+        conn.execute("ALTER TABLE papers ADD COLUMN pages INTEGER")
 
 
 @contextmanager

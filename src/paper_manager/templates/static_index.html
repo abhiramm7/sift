@@ -71,18 +71,15 @@
         {% for p in group %}
           <article class="paper-entry">
             <a class="paper-entry-head" href="{{ url_for_paper(p.id) }}">
-              <div class="paper-thumb" data-hash="{{ p.id }}"></div>
-              <div class="paper-entry-text">
-                <div class="paper-entry-title">{{ p.title }}</div>
-                <div class="paper-entry-meta">
-                  {% if p.authors %}{{ p.authors[:5] | join(', ') }}{% if p.authors|length > 5 %} et al.{% endif %}{% endif %}
-                  {% if p.venue %} · <em>{{ p.venue }}</em>{% endif %}
-                </div>
-                <div class="paper-entry-links">
-                  {% set tags = (p.user_tags or []) + (p.auto.tags or []) %}
-                  {% for t in tags[:4] %}<span class="entry-tag">{{ t }}</span>{% endfor %}
-                  {% for cl in p.auto.code_links or [] %}<span class="entry-tag code">{{ cl.host }}</span>{% endfor %}
-                </div>
+              <div class="paper-entry-title">{{ p.title }}</div>
+              <div class="paper-entry-meta">
+                {% if p.authors %}{{ p.authors[:5] | join(', ') }}{% if p.authors|length > 5 %} et al.{% endif %}{% endif %}
+                {% if p.venue %} · <em>{{ p.venue }}</em>{% endif %}
+              </div>
+              <div class="paper-entry-links">
+                {% set tags = (p.user_tags or []) + (p.auto.tags or []) %}
+                {% for t in tags[:4] %}<span class="entry-tag">{{ t }}</span>{% endfor %}
+                {% for cl in p.auto.code_links or [] %}<span class="entry-tag code">{{ cl.host }}</span>{% endfor %}
               </div>
             </a>
           </article>

@@ -232,16 +232,10 @@ a:hover { color: var(--accent); }
 
 .paper-entry { padding: 16px 0; border-bottom: 1px solid var(--line-soft); }
 .paper-entry-head {
-  display: grid;
-  grid-template-columns: 60px 1fr;
-  gap: 18px;
+  display: block;
   cursor: pointer;
-  align-items: flex-start;
-}
-.paper-thumb {
-  width: 60px; height: 60px;
-  border: 1px solid var(--ink);
-  background: #fafafa;
+  text-decoration: none;
+  color: inherit;
 }
 .paper-entry-title {
   font-weight: 700;
@@ -269,7 +263,7 @@ a:hover { color: var(--accent); }
 
 .paper-entry-body {
   display: none;
-  margin: 16px 0 0 78px;
+  margin: 16px 0 0;
   padding: 20px 24px;
   border: 1px solid var(--ink);
   font-size: 14px;
@@ -347,18 +341,13 @@ a:hover { color: var(--accent); }
   .rec-card { flex: 0 0 78vw; max-width: 280px; }
   .card-title { font-size: 13px; -webkit-line-clamp: 3; }
 
-  .paper-entry-head {
-    grid-template-columns: 48px 1fr;
-    gap: 12px;
-  }
-  .paper-thumb { width: 48px; height: 48px; }
   .paper-entry-title { font-size: 15px; }
   .paper-entry-meta { font-size: 11px; }
   .paper-entry-tldr { font-size: 12px; }
   .paper-entry-links { gap: 8px; }
 
   .paper-entry-body {
-    margin: 14px 0 0 0;
+    margin: 14px 0 0;
     padding: 16px;
     font-size: 13px;
   }

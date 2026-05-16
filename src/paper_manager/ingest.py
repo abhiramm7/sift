@@ -53,19 +53,33 @@ def ingest_pdf(
     except Exception:
         pass  # never let a figure extraction failure block the ingest
 
-    raw = claude.summarize_and_extract(
-        extracted.full_text,
-        title_hint=src_pdf.stem,
-        model=cfg.claude_model,
-    )
-    title = raw.get("title") or src_pdf.stem
-    authors = raw.get("authors") or []
-    year = raw.get("year")
-    venue = raw.get("venue")
-    doi = raw.get("doi")
-    arxiv_id = raw.get("arxiv_id")
-    auto = raw.get("auto") or {}
-    summary = raw.get("summary") or ""
+    kind = pdf.detect_kind(extracted, title_hint=src_pdf.stem)
+    if kind != "paper":
+        # Books and reports don't fit the Keshav three-pass framing. We still
+        # extract text + figures + embeddings (so they're searchable), but skip
+        # the expensive Claude pass and fill metadata from filename only.
+        title = src_pdf.stem
+        authors: list[str] = []
+        year = None
+        venue = None
+        doi = None
+        arxiv_id = None
+        auto: dict = {"tags": [], "methods": [], "datasets": [], "claims": [], "key_terms": [], "code_links": []}
+        summary = f"*This is a {kind}, not a research paper. Summary skipped.*"
+    else:
+        raw = claude.summarize_and_extract(
+            extracted.full_text,
+            title_hint=src_pdf.stem,
+            model=cfg.claude_model,
+        )
+        title = raw.get("title") or src_pdf.stem
+        authors = raw.get("authors") or []
+        year = raw.get("year")
+        venue = raw.get("venue")
+        doi = raw.get("doi")
+        arxiv_id = raw.get("arxiv_id")
+        auto = raw.get("auto") or {}
+        summary = raw.get("summary") or ""
     auto["code_links"] = code_links.merge_with_claude(
         code_links.find(extracted.full_text),
         auto.get("code_links"),
@@ -98,6 +112,8 @@ def ingest_pdf(
         added_at=now_iso(),
         sha256=sha,
         source=source,
+        kind=kind,
+        pages=extracted.page_count,
         user_tags=user_tags or [],
         auto=auto,
     )
@@ -109,8 +125,8 @@ def ingest_pdf(
             """
             INSERT INTO papers(
                 id, title, authors, year, venue, doi, arxiv_id,
-                added_at, sha256, source, user_tags, auto, summary, summary_vec
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                added_at, sha256, source, kind, pages, user_tags, auto, summary, summary_vec
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title=excluded.title,
                 authors=excluded.authors,
@@ -118,6 +134,8 @@ def ingest_pdf(
                 venue=excluded.venue,
                 doi=excluded.doi,
                 arxiv_id=excluded.arxiv_id,
+                kind=excluded.kind,
+                pages=excluded.pages,
                 user_tags=excluded.user_tags,
                 auto=excluded.auto,
                 summary=excluded.summary,
@@ -134,6 +152,8 @@ def ingest_pdf(
                 meta.added_at,
                 sha,
                 source,
+                kind,
+                extracted.page_count,
                 json.dumps(meta.user_tags),
                 json.dumps(auto),
                 summary,

@@ -22,6 +22,8 @@ class PaperMeta:
     added_at: str
     sha256: str
     source: str
+    kind: str = "paper"           # 'paper' | 'book' | 'report'
+    pages: int | None = None
     user_tags: list[str] = field(default_factory=list)
     auto: dict = field(default_factory=dict)
 
@@ -41,6 +43,8 @@ class PaperMeta:
             added_at=data.get("added_at", now_iso()),
             sha256=data.get("sha256", ""),
             source=data.get("source", "manual"),
+            kind=data.get("kind", "paper"),
+            pages=data.get("pages"),
             user_tags=data.get("user_tags", []),
             auto=data.get("auto", {}),
         )
@@ -149,3 +153,13 @@ def list_paper_ids(cfg: Config) -> list[str]:
         for d in cfg.library_dir.iterdir()
         if d.is_dir() and (d / "metadata.json").exists()
     )
+
+
+def delete_paper(cfg: Config, paper_id: str) -> bool:
+    """Remove a paper's directory (PDF, summary, figures, chunks) from iCloud.
+    Caller is responsible for cleaning the SQLite rows separately."""
+    pdir = paper_dir(cfg, paper_id)
+    if not pdir.exists():
+        return False
+    shutil.rmtree(pdir)
+    return True

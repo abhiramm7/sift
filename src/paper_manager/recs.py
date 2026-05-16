@@ -70,7 +70,9 @@ def top_topics(conn: sqlite3.Connection, *, limit: int = 12) -> list[Topic]:
 
     Works without any user ratings — gives a useful entry point even on day one.
     """
-    rows = conn.execute("SELECT id, title, user_tags, auto FROM papers").fetchall()
+    rows = conn.execute(
+        "SELECT id, title, user_tags, auto FROM papers WHERE COALESCE(kind, 'paper') = 'paper'"
+    ).fetchall()
     counts: dict[str, int] = {}
     samples: dict[str, list[str]] = {}
     for r in rows:
@@ -111,6 +113,7 @@ def continue_reading(conn: sqlite3.Connection, *, limit: int = 8) -> list[RecPap
         WHERE history.event = 'opened'
           AND COALESCE(prefs.read, 0) = 0
           AND COALESCE(prefs.hidden, 0) = 0
+          AND COALESCE(papers.kind, 'paper') = 'paper'
         GROUP BY papers.id
         ORDER BY last_ts DESC
         LIMIT ?
@@ -127,6 +130,7 @@ def recently_added(conn: sqlite3.Connection, *, limit: int = 12) -> list[RecPape
         FROM papers
         LEFT JOIN prefs ON prefs.paper_id = papers.id
         WHERE COALESCE(prefs.hidden, 0) = 0
+          AND COALESCE(papers.kind, 'paper') = 'paper'
         ORDER BY papers.added_at DESC
         LIMIT ?
         """,
@@ -135,8 +139,11 @@ def recently_added(conn: sqlite3.Connection, *, limit: int = 12) -> list[RecPape
     return [_row_to_rec(r, reason="New in your library") for r in rows]
 
 
+AUTHOR_BONUS_PER_OVERLAP = 0.04
+
+
 def because_you_liked(conn: sqlite3.Connection, *, limit: int = 8) -> list[RecPaper]:
-    liked = conn.execute(
+    seed = conn.execute(
         """
         SELECT papers.id, papers.title, papers.summary_vec
         FROM prefs
@@ -146,10 +153,27 @@ def because_you_liked(conn: sqlite3.Connection, *, limit: int = 8) -> list[RecPa
         LIMIT 1
         """
     ).fetchone()
-    if not liked or not liked["summary_vec"]:
+    if not seed or not seed["summary_vec"]:
         return []
+    seed_vec = blob_to_vector(seed["summary_vec"])
 
-    seed_vec = blob_to_vector(liked["summary_vec"])
+    # Author affinity: every liked paper's authors get a weight equal to how many
+    # liked papers they appeared in. So a frequently-liked author gives a bigger boost.
+    liked_rows = conn.execute(
+        """
+        SELECT papers.authors
+        FROM prefs
+        JOIN papers ON papers.id = prefs.paper_id
+        WHERE prefs.rating >= 1
+        """
+    ).fetchall()
+    affinity: dict[str, int] = {}
+    for r in liked_rows:
+        for a in json.loads(r["authors"]):
+            key = a.lower().strip()
+            if key:
+                affinity[key] = affinity.get(key, 0) + 1
+
     candidates = conn.execute(
         """
         SELECT papers.id, papers.title, papers.year, papers.authors, papers.auto, papers.user_tags, papers.summary_vec
@@ -159,19 +183,42 @@ def because_you_liked(conn: sqlite3.Connection, *, limit: int = 8) -> list[RecPa
           AND COALESCE(prefs.read, 0) = 0
           AND COALESCE(prefs.hidden, 0) = 0
           AND COALESCE(prefs.rating, 0) >= 0
+          AND COALESCE(papers.kind, 'paper') = 'paper'
         """,
-        (liked["id"],),
+        (seed["id"],),
     ).fetchall()
     if not candidates:
         return []
 
     matrix = np.stack([blob_to_vector(r["summary_vec"]) for r in candidates])
-    scores = _cosine_against(seed_vec, matrix)
-    order = np.argsort(-scores)[:limit]
+    cos_scores = _cosine_against(seed_vec, matrix)
+
+    # Compute per-candidate author overlap + final score.
+    bonuses = np.zeros(len(candidates), dtype=np.float32)
+    shared: list[list[str]] = []
+    for i, r in enumerate(candidates):
+        authors = json.loads(r["authors"])
+        matched: list[str] = []
+        weight = 0
+        for a in authors:
+            key = a.lower().strip()
+            if key in affinity:
+                matched.append(a)
+                weight += affinity[key]
+        bonuses[i] = AUTHOR_BONUS_PER_OVERLAP * weight
+        shared.append(matched)
+
+    final_scores = cos_scores + bonuses
+    order = np.argsort(-final_scores)[:limit]
     out: list[RecPaper] = []
     for i in order:
-        r = candidates[int(i)]
-        out.append(_row_to_rec(r, reason=f"Similar to '{liked['title']}'", score=float(scores[int(i)])))
+        i = int(i)
+        r = candidates[i]
+        reason = f"Similar to '{seed['title']}'"
+        if shared[i]:
+            names = ", ".join(shared[i][:2])
+            reason = f"Similar to '{seed['title']}' · also by {names}"
+        out.append(_row_to_rec(r, reason=reason, score=float(final_scores[i])))
     return out
 
 
@@ -245,6 +292,7 @@ def claude_picks(cfg: Config, conn: sqlite3.Connection, *, n: int = 5) -> list[R
         WHERE COALESCE(prefs.read, 0) = 0
           AND COALESCE(prefs.hidden, 0) = 0
           AND COALESCE(prefs.rating, 0) = 0
+          AND COALESCE(papers.kind, 'paper') = 'paper'
         ORDER BY papers.added_at DESC
         LIMIT 60
         """

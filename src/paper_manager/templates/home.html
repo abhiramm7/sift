@@ -3,7 +3,7 @@
 {% block content %}
 
 {% if hero %}
-<section class="hero">
+<section class="hero" data-state="{{ rating_state.get(hero.paper_id, 'none') }}">
   <span class="eyebrow">{{ hero.reason or 'Featured' }}</span>
   <h1>{{ hero.title }}</h1>
   <p class="hero-meta">
@@ -13,6 +13,9 @@
   <div class="hero-actions">
     <a class="btn primary" href="/paper/{{ hero.paper_id }}">Read →</a>
     <a class="btn" href="/paper/{{ hero.paper_id }}/pdf" target="_blank">PDF</a>
+    {% with paper_id = hero.paper_id, state = rating_state.get(hero.paper_id, 'none') %}
+      {% include "_card_rate.html" %}
+    {% endwith %}
   </div>
 </section>
 {% else %}
@@ -43,6 +46,47 @@
 </section>
 {% endif %}
 
+{% if discover.candidates %}
+<section class="rec-row">
+  <div class="rec-head">
+    <span class="rec-num">∗</span>
+    <span class="rec-title">From arXiv — ranked against your library</span>
+    <span class="rec-count">refreshed {{ discover.refreshed_at[:10] if discover.refreshed_at else '' }} · {{ discover.candidates|length }}</span>
+  </div>
+  <div class="rec-strip">
+    {% for c in discover.candidates %}
+      <div class="card discover-card" data-arxiv="{{ c.arxiv_id }}">
+        <a class="card-link" href="{{ c.abs_url }}" target="_blank" rel="noopener">
+          <span class="card-num">{{ '%.2f' | format(c.score) }} · {{ c.arxiv_id }}</span>
+          <div class="card-title">{{ c.title }}</div>
+          <div class="card-meta">
+            {{ c.published[:10] }}{% if c.authors %} · {{ c.authors[:2] | join(', ') }}{% if c.authors|length > 2 %} et al.{% endif %}{% endif %}
+          </div>
+          <div class="card-reason">{{ c.abstract[:200] }}{% if c.abstract|length > 200 %}…{% endif %}</div>
+          <div class="card-tags">{% for cat in c.categories[:3] %}<span class="tag">{{ cat }}</span>{% endfor %}</div>
+        </a>
+        <div class="card-rate">
+          <button
+            title="Ingest into library"
+            class="card-rate-btn"
+            hx-post="/discover/ingest/{{ c.arxiv_id }}"
+            hx-target="closest .discover-card"
+            hx-swap="outerHTML"
+            onclick="event.stopPropagation();">+</button>
+          <button
+            title="Dismiss"
+            class="card-rate-btn"
+            hx-post="/discover/dismiss/{{ c.arxiv_id }}"
+            hx-target="closest .discover-card"
+            hx-swap="outerHTML"
+            onclick="event.stopPropagation();">×</button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% for row in rows %}
   <section class="rec-row">
     <div class="rec-head">
@@ -52,17 +96,22 @@
     </div>
     <div class="rec-strip">
       {% for p in row.papers %}
-        <a class="card" href="/paper/{{ p.paper_id }}">
-          <span class="card-num">{{ '%02d' | format(loop.index) }} / {{ '%02d' | format(loop.length) }}</span>
-          <div class="card-title">{{ p.title }}</div>
-          <div class="card-meta">
-            {% if p.year %}{{ p.year }}{% endif %}{% if p.year and p.authors %} · {% endif %}{% if p.authors %}{{ p.authors[:2] | join(', ') }}{% if p.authors|length > 2 %} et al.{% endif %}{% endif %}
-          </div>
-          {% if p.reason %}<div class="card-reason">{{ p.reason }}</div>{% endif %}
-          {% if p.tags %}
-            <div class="card-tags">{% for t in p.tags[:3] %}<span class="tag">{{ t }}</span>{% endfor %}</div>
-          {% endif %}
-        </a>
+        <div class="card" data-state="{{ rating_state.get(p.paper_id, 'none') }}">
+          <a class="card-link" href="/paper/{{ p.paper_id }}">
+            <span class="card-num">{{ '%02d' | format(loop.index) }} / {{ '%02d' | format(loop.length) }}</span>
+            <div class="card-title">{{ p.title }}</div>
+            <div class="card-meta">
+              {% if p.year %}{{ p.year }}{% endif %}{% if p.year and p.authors %} · {% endif %}{% if p.authors %}{{ p.authors[:2] | join(', ') }}{% if p.authors|length > 2 %} et al.{% endif %}{% endif %}
+            </div>
+            {% if p.reason %}<div class="card-reason">{{ p.reason }}</div>{% endif %}
+            {% if p.tags %}
+              <div class="card-tags">{% for t in p.tags[:3] %}<span class="tag">{{ t }}</span>{% endfor %}</div>
+            {% endif %}
+          </a>
+          {% with paper_id = p.paper_id, state = rating_state.get(p.paper_id, 'none') %}
+            {% include "_card_rate.html" %}
+          {% endwith %}
+        </div>
       {% endfor %}
     </div>
   </section>

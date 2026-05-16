@@ -6,7 +6,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from . import cache, config, db, ingest, storage
+from . import cache, config, db, ingest, library, storage
 
 app = typer.Typer(help="Paper Manager — a local web app for your paper library.")
 console = Console()
@@ -267,6 +267,138 @@ def resummarize(
             raise typer.Exit(code=1)
         ingest.resummarize(cfg, conn, paper_id)
         console.print(f"[green]✓[/green] resummarized: {row['title']}  ({paper_id})")
+
+
+@app.command()
+def delete(
+    paper_id: str = typer.Argument(...),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation."),
+) -> None:
+    """Delete a paper (PDF, summary, figures, embeddings) from the library."""
+    cfg = config.load()
+    conn = db.connect(cfg.sqlite_path)
+    db.init_schema(conn)
+    row = conn.execute("SELECT title FROM papers WHERE id = ?", (paper_id,)).fetchone()
+    if not row:
+        console.print(f"[red]no paper with id {paper_id}[/red]")
+        raise typer.Exit(code=1)
+    if not yes and not typer.confirm(f"Delete '{row['title']}'? This removes PDF + summary + figures."):
+        return
+    title = library.delete(cfg, conn, paper_id)
+    console.print(f"[green]✓[/green] deleted: {title}")
+
+
+@app.command()
+def kind(
+    paper_id: str = typer.Argument(...),
+    new_kind: str = typer.Argument(..., help="paper | book | report"),
+) -> None:
+    """Re-classify a paper as paper/book/report."""
+    cfg = config.load()
+    conn = db.connect(cfg.sqlite_path)
+    db.init_schema(conn)
+    try:
+        library.set_kind(cfg, conn, paper_id, new_kind)
+    except library.LibraryError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(code=1)
+    console.print(f"[green]✓[/green] {paper_id} marked as {new_kind}")
+
+
+@app.command()
+def follow(
+    category: str = typer.Argument(None, help="arXiv category code (e.g., cs.LG). Omit to list current follows."),
+    remove: bool = typer.Option(False, "--remove", "-r", help="Remove instead of add."),
+) -> None:
+    """Manage which arXiv categories `paper discover` pulls from."""
+    from . import discover as disc
+    cfg = config.load()
+    storage.ensure_dirs(cfg)
+    if category is None:
+        current = disc.list_follows(cfg)
+        if not current:
+            console.print("[yellow]no follows. add one with `paper follow cs.LG`[/yellow]")
+        else:
+            for c in current:
+                console.print(f"  {c}")
+        return
+    if remove:
+        new = disc.remove_follow(cfg, category)
+        console.print(f"[green]✓[/green] removed {category} (now: {', '.join(new) or 'none'})")
+    else:
+        new = disc.add_follow(cfg, category)
+        console.print(f"[green]✓[/green] added {category} (now: {', '.join(new)})")
+
+
+@app.command()
+def discover(
+    per_category: int = typer.Option(30, "--per-category", help="How many recent arxiv papers to fetch per category."),
+    top_k: int = typer.Option(12, "--top-k", help="How many top-ranked candidates to keep."),
+) -> None:
+    """Fetch new arXiv papers in followed categories, rank against your library."""
+    from . import discover as disc
+    cfg = config.load()
+    storage.ensure_dirs(cfg)
+    conn = db.connect(cfg.sqlite_path)
+    db.init_schema(conn)
+    follows = disc.list_follows(cfg)
+    if not follows:
+        console.print("[yellow]no follows configured. add one: `paper follow cs.LG`[/yellow]")
+        return
+    console.print(f"fetching arXiv ({', '.join(follows)})…")
+    candidates = disc.rank_and_save(cfg, conn, per_category=per_category, top_k=top_k)
+    if not candidates:
+        console.print("[yellow]no fresh candidates (already in library or interest vector empty)[/yellow]")
+        return
+    console.print(f"[green]✓[/green] saved {len(candidates)} candidate(s):")
+    for c in candidates:
+        console.print(f"  {c.score:.3f}  {c.title[:80]}  [{c.arxiv_id}]")
+
+
+@app.command("classify-existing")
+def classify_existing(
+    threshold: int = typer.Option(80, "--threshold", help="Page count above which a PDF is treated as a book."),
+) -> None:
+    """Backfill: detect kind on every paper in the library via PyMuPDF page count."""
+    import fitz  # fast page-count, no full text re-extract
+    cfg = config.load()
+    conn = db.connect(cfg.sqlite_path)
+    db.init_schema(conn)
+    rows = conn.execute(
+        "SELECT id, title, pages, kind FROM papers ORDER BY added_at"
+    ).fetchall()
+    if not rows:
+        console.print("[yellow]library is empty[/yellow]")
+        return
+    relabeled = 0
+    for r in rows:
+        pages = r["pages"]
+        if pages is None:
+            pdf_path = storage.pdf_path(cfg, r["id"])
+            if not pdf_path.exists():
+                continue
+            try:
+                doc = fitz.open(str(pdf_path))
+                pages = doc.page_count
+                doc.close()
+            except Exception as e:
+                console.print(f"[red]✗[/red] {r['id']}  {e}")
+                continue
+        title_lc = (r["title"] or "").lower()
+        if "technical report" in title_lc or title_lc.endswith(" report") or " report:" in title_lc:
+            new = "report"
+        elif pages > threshold:
+            new = "book"
+        else:
+            new = "paper"
+        current = r["kind"] or "paper"
+        if new != current:
+            library.set_kind(cfg, conn, r["id"], new)
+            console.print(f"[yellow]{current}→{new}[/yellow]  {pages:>4}p  {r['title']}")
+            relabeled += 1
+        with conn:
+            conn.execute("UPDATE papers SET pages = ? WHERE id = ?", (pages, r["id"]))
+    console.print(f"\n[green]✓[/green] relabeled {relabeled}/{len(rows)} papers")
 
 
 @app.command("export-site")

@@ -68,14 +68,15 @@ def rebuild(cfg: Config, conn: sqlite3.Connection) -> dict:
                     """
                     INSERT INTO papers(
                         id, title, authors, year, venue, doi, arxiv_id,
-                        added_at, sha256, source, user_tags, auto, summary, summary_vec
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        added_at, sha256, source, kind, pages, user_tags, auto, summary, summary_vec
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         meta.id, meta.title, json.dumps(meta.authors), meta.year,
                         meta.venue, meta.doi, meta.arxiv_id, meta.added_at,
-                        meta.sha256, meta.source, json.dumps(meta.user_tags),
-                        json.dumps(meta.auto), summary, vector_to_blob(summary_vec),
+                        meta.sha256, meta.source, meta.kind, meta.pages,
+                        json.dumps(meta.user_tags), json.dumps(meta.auto),
+                        summary, vector_to_blob(summary_vec),
                     ),
                 )
                 for c, v in zip(chunks, chunk_vectors):

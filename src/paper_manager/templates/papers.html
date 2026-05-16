@@ -18,24 +18,21 @@
       {% for p in papers %}
         <article class="paper-entry" id="p-{{ p.id }}">
           <div class="paper-entry-head">
-            <div class="paper-thumb" data-hash="{{ p.id }}"></div>
-            <div class="paper-entry-text">
-              <div class="paper-entry-title">{{ p.title }}</div>
-              <div class="paper-entry-meta">
-                {% if p.authors %}{{ p.authors[:6] | join(', ') }}{% if p.authors|length > 6 %} et al.{% endif %}{% endif %}
-                {% if p.venue %}<span class="venue">· <em>{{ p.venue }}</em></span>{% endif %}
-                {% if p.year %}<span class="year">· {{ p.year }}</span>{% endif %}
-              </div>
-              {% if p.tldr %}<p class="paper-entry-tldr">{{ p.tldr }}</p>{% endif %}
-              <div class="paper-entry-links">
-                {% if p.doi %}<a href="https://doi.org/{{ p.doi }}" target="_blank">[doi]</a>{% endif %}
-                {% if p.arxiv_id %}<a href="https://arxiv.org/abs/{{ p.arxiv_id }}" target="_blank">[arxiv]</a>{% endif %}
-                <a href="/paper/{{ p.id }}/pdf" target="_blank">[pdf]</a>
-                <a href="/paper/{{ p.id }}">[detail]</a>
-                {% for cl in p.auto.code_links or [] %}<a href="{{ cl.url }}" target="_blank">[{{ cl.host }}]</a>{% endfor %}
-                {% set tags = (p.user_tags or []) + (p.auto.tags or []) %}
-                {% for t in tags[:5] %}<span class="entry-tag">{{ t }}</span>{% endfor %}
-              </div>
+            <div class="paper-entry-title">{{ p.title }}</div>
+            <div class="paper-entry-meta">
+              {% if p.authors %}{{ p.authors[:6] | join(', ') }}{% if p.authors|length > 6 %} et al.{% endif %}{% endif %}
+              {% if p.venue %}<span class="venue">· <em>{{ p.venue }}</em></span>{% endif %}
+              {% if p.year %}<span class="year">· {{ p.year }}</span>{% endif %}
+            </div>
+            {% if p.tldr %}<p class="paper-entry-tldr">{{ p.tldr }}</p>{% endif %}
+            <div class="paper-entry-links">
+              {% if p.doi %}<a href="https://doi.org/{{ p.doi }}" target="_blank">[doi]</a>{% endif %}
+              {% if p.arxiv_id %}<a href="https://arxiv.org/abs/{{ p.arxiv_id }}" target="_blank">[arxiv]</a>{% endif %}
+              <a href="/paper/{{ p.id }}/pdf" target="_blank">[pdf]</a>
+              <a href="/paper/{{ p.id }}">[detail]</a>
+              {% for cl in p.auto.code_links or [] %}<a href="{{ cl.url }}" target="_blank">[{{ cl.host }}]</a>{% endfor %}
+              {% set tags = (p.user_tags or []) + (p.auto.tags or []) %}
+              {% for t in tags[:5] %}<span class="entry-tag">{{ t }}</span>{% endfor %}
             </div>
           </div>
           <div class="paper-entry-body">

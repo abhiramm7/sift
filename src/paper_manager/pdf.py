@@ -32,6 +32,21 @@ def extract(path: Path) -> ExtractedPdf:
     return ExtractedPdf(full_text=full, pages=pages, page_count=len(pages))
 
 
+# Heuristic: longer than BOOK_THRESHOLD pages → treat as a book (no Keshav summary,
+# since books don't fit the three-pass framing). "Report" wins via the title check.
+BOOK_THRESHOLD_PAGES = 80
+
+
+def detect_kind(extracted: "ExtractedPdf", title_hint: str | None = None) -> str:
+    """Classify a PDF as 'paper', 'book', or 'report'."""
+    title = (title_hint or "").lower()
+    if "technical report" in title or title.endswith(" report") or " report:" in title:
+        return "report"
+    if extracted.page_count > BOOK_THRESHOLD_PAGES:
+        return "book"
+    return "paper"
+
+
 def _extract_with_pypdf(path: Path) -> list[PageText]:
     reader = PdfReader(str(path))
     out: list[PageText] = []

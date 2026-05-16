@@ -20,6 +20,7 @@ async def papers_page(request: Request):
         """
         SELECT id, title, authors, year, venue, doi, arxiv_id, added_at, user_tags, auto, summary
         FROM papers
+        WHERE COALESCE(kind, 'paper') = 'paper'
         ORDER BY year DESC NULLS LAST, added_at DESC
         """
     ).fetchall()
