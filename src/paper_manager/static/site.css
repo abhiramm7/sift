@@ -211,9 +211,11 @@ a:hover { color: var(--accent); }
   text-decoration: none;
   background: transparent;
 }
-.topic-chip:hover { background: var(--ink); color: var(--bg); }
+.topic-chip:hover, .topic-chip.active { background: var(--ink); color: var(--bg); }
+.topic-chip { cursor: pointer; }
 .topic-chip .topic-count { color: var(--muted); margin-left: 8px; font-size: 10px; }
-.topic-chip:hover .topic-count { color: var(--bg); }
+.topic-chip:hover .topic-count, .topic-chip.active .topic-count { color: var(--bg); }
+.paper-entry.filtered-out, .year-block.filtered-out { display: none; }
 
 .entry-tag.code {
   background: var(--ink);

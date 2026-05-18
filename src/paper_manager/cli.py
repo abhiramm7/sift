@@ -240,8 +240,8 @@ def resummarize(
 ) -> None:
     """Re-run Claude summarization on an existing paper using the current prompt.
 
-    Useful after changing the summary template (e.g., switching to Keshav 3-pass).
-    Re-uses already-extracted text and embeddings — only the summary is regenerated.
+    Useful after changing the summary template. Re-uses already-extracted text and
+    embeddings — only the summary is regenerated.
     """
     cfg = config.load()
     conn = db.connect(cfg.sqlite_path)

@@ -22,7 +22,7 @@
       hx-post="/manage/kind/{{ p.id }}"
       hx-target="#row-{{ p.id }}"
       hx-swap="outerHTML"
-      hx-trigger="change from:select">
+      hx-trigger="change">
       <select name="kind">
         <option value="paper" {{ 'selected' if p.kind == 'paper' else '' }}>paper</option>
         <option value="book" {{ 'selected' if p.kind == 'book' else '' }}>book</option>
