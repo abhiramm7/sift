@@ -282,6 +282,80 @@ button:hover { background: var(--accent); color: var(--bg); }
 .filebtn:hover { background: var(--accent); }
 .filebtn input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
+.add-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+@media (max-width: 720px) {
+  .add-grid { grid-template-columns: 1fr; }
+}
+
+.dropzone {
+  border: 2px dashed var(--ink);
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--paper);
+  transition: background 0.15s, border-color 0.15s;
+}
+.dropzone.is-dragging {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--paper));
+}
+.dropzone-body { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.dropzone-icon { font-size: 28px; line-height: 1; color: var(--muted); }
+.dropzone-label { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.dropzone-label strong { display: block; font-size: 14px; margin-bottom: 2px; }
+.linklike {
+  background: none; color: var(--accent); padding: 0;
+  font-family: var(--mono); font-size: 13px; text-transform: none;
+  letter-spacing: 0; text-decoration: underline; cursor: pointer;
+}
+.linklike:hover { background: none; color: var(--ink); }
+.dropzone-files {
+  display: flex; flex-wrap: wrap; gap: 4px; justify-content: center;
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+}
+.dropzone-file {
+  background: var(--bg); border: 1px solid var(--line);
+  padding: 2px 8px;
+}
+.dropzone input[type=text] {
+  font-family: var(--mono); font-size: 13px;
+  background: var(--bg); color: var(--ink);
+  border: 1px solid var(--ink); border-radius: 0;
+  padding: 8px 12px; min-width: 280px;
+}
+.dropzone-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+.dropzone.htmx-request .dropzone-submit::after {
+  content: " · ingesting…";
+}
+
+.urlform {
+  border: 1px solid var(--ink);
+  padding: 20px;
+  background: var(--paper);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.urlform h3 {
+  font-family: var(--mono); font-weight: 700;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); margin: 0;
+}
+.urlform-hint { font-family: var(--mono); font-size: 12px; color: var(--muted); margin: -4px 0 4px; }
+.urlform input {
+  font-family: var(--mono); font-size: 13px;
+  background: var(--bg); color: var(--ink);
+  border: 1px solid var(--ink); border-radius: 0;
+  padding: 8px 12px;
+}
+.urlform input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.urlform button { align-self: flex-start; }
+.urlform.htmx-request button::after {
+  content: " · fetching…";
+}
+
 .filters {
   float: left; width: 180px; margin-right: 32px;
   font-family: var(--mono); font-size: 12px;

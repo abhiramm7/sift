@@ -36,9 +36,69 @@
     });
   }
 
+  function attachDropzone() {
+    const zone = document.getElementById("pdf-dropzone");
+    if (!zone || zone.dataset.attached) return;
+    zone.dataset.attached = "1";
+    const input = zone.querySelector("#pdf-input");
+    const picker = zone.querySelector("#pdf-pick");
+    const filesEl = zone.querySelector("#pdf-files");
+    const submit = zone.querySelector(".dropzone-submit");
+
+    function renderFiles() {
+      const files = Array.from(input.files || []);
+      if (!files.length) {
+        filesEl.textContent = "";
+        submit.disabled = true;
+        return;
+      }
+      filesEl.innerHTML = files
+        .map((f) => `<span class="dropzone-file">${f.name}</span>`)
+        .join("");
+      submit.disabled = false;
+    }
+
+    picker.addEventListener("click", (e) => {
+      e.preventDefault();
+      input.click();
+    });
+    input.addEventListener("change", renderFiles);
+
+    ["dragenter", "dragover"].forEach((ev) => {
+      zone.addEventListener(ev, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.add("is-dragging");
+      });
+    });
+    ["dragleave", "dragend", "drop"].forEach((ev) => {
+      zone.addEventListener(ev, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (ev !== "drop") zone.classList.remove("is-dragging");
+      });
+    });
+    zone.addEventListener("drop", (e) => {
+      zone.classList.remove("is-dragging");
+      const dropped = Array.from(e.dataTransfer?.files || [])
+        .filter((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+      if (!dropped.length) return;
+      const dt = new DataTransfer();
+      dropped.forEach((f) => dt.items.add(f));
+      input.files = dt.files;
+      renderFiles();
+    });
+
+    zone.addEventListener("htmx:afterRequest", () => {
+      input.value = "";
+      renderFiles();
+    });
+  }
+
   function init() {
     tintArt();
     attachPaperToggle();
+    attachDropzone();
   }
 
   document.addEventListener("DOMContentLoaded", init);

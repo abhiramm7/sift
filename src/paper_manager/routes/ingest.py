@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import html
 import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from .. import ingest as ingest_svc
+from .. import fetch_url, ingest as ingest_svc
 
 router = APIRouter()
 
@@ -44,6 +45,56 @@ async def upload_pdf(
         for r in results
     ) + "</ul>"
     return HTMLResponse(f"<div class=\"toast\">Ingested {len(results)} paper(s):{body}</div>")
+
+
+@router.post("/papers/by-url")
+async def upload_url(
+    request: Request,
+    url: str = Form(...),
+    tags: str = Form(""),
+):
+    cfg = request.app.state.cfg
+    conn = request.app.state.db
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    url = url.strip()
+    if not url:
+        return HTMLResponse('<div class="toast">URL is required.</div>')
+
+    try:
+        fetched = fetch_url.fetch(url)
+    except Exception as e:
+        return HTMLResponse(
+            f'<div class="toast">Fetch failed for <code>{html.escape(url)}</code>: '
+            f'<em>{html.escape(str(e))}</em></div>'
+        )
+
+    try:
+        if fetched.pdf_path:
+            result = ingest_svc.ingest_pdf(
+                cfg, conn, fetched.pdf_path,
+                user_tags=tag_list,
+                source=f"{fetched.source_kind}:{fetched.source_url}",
+            )
+            fetched.pdf_path.unlink(missing_ok=True)
+        else:
+            result = ingest_svc.ingest_text(
+                cfg, conn,
+                text=fetched.text,
+                title_hint=fetched.title_hint,
+                source_url=fetched.source_url,
+                source_kind=fetched.source_kind,
+                user_tags=tag_list,
+            )
+    except Exception as e:
+        return HTMLResponse(
+            f'<div class="toast">Ingest failed: <em>{html.escape(str(e))}</em></div>'
+        )
+
+    state = "added" if result.new else "already in library"
+    return HTMLResponse(
+        f'<div class="toast">{state}: '
+        f'<a href="/paper/{result.paper_id}">{html.escape(result.title)}</a></div>'
+    )
 
 
 @router.post("/ingest/inbox")

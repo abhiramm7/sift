@@ -11,24 +11,44 @@
   </form>
 
   <form
-    class="upload"
-    hx-post="/papers"
-    hx-target="#toast"
-    hx-swap="innerHTML"
-    hx-encoding="multipart/form-data">
-    <label class="filebtn">
-      <input type="file" name="pdfs" accept="application/pdf" multiple>
-      <span>Upload PDF(s)</span>
-    </label>
-    <input type="text" name="tags" placeholder="optional tags, comma-separated">
-    <button type="submit">Add</button>
-  </form>
-
-  <form
     hx-post="/ingest/inbox"
     hx-target="#toast"
     hx-swap="innerHTML">
     <button type="submit" class="ghost">Scan iCloud inbox</button>
+  </form>
+</section>
+
+<section class="add-grid">
+  <form
+    class="dropzone"
+    id="pdf-dropzone"
+    hx-post="/papers"
+    hx-target="#toast"
+    hx-swap="innerHTML"
+    hx-encoding="multipart/form-data">
+    <input type="file" name="pdfs" id="pdf-input" accept="application/pdf" multiple hidden>
+    <div class="dropzone-body">
+      <div class="dropzone-icon">⬇</div>
+      <div class="dropzone-label">
+        <strong>Drop PDFs here</strong>
+        <span>or <button type="button" class="linklike" id="pdf-pick">choose files</button></span>
+      </div>
+      <div class="dropzone-files" id="pdf-files"></div>
+      <input type="text" name="tags" placeholder="optional tags, comma-separated">
+      <button type="submit" class="dropzone-submit" disabled>Upload</button>
+    </div>
+  </form>
+
+  <form
+    class="urlform"
+    hx-post="/papers/by-url"
+    hx-target="#toast"
+    hx-swap="innerHTML">
+    <h3>Add by URL</h3>
+    <p class="urlform-hint">arXiv link/id, direct PDF, or any blog/article.</p>
+    <input type="url" name="url" placeholder="https://arxiv.org/abs/…" required>
+    <input type="text" name="tags" placeholder="optional tags, comma-separated">
+    <button type="submit">Fetch &amp; ingest</button>
   </form>
 </section>
 
