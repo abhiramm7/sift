@@ -4,6 +4,8 @@ A local web app for your paper library. PDFs live in iCloud, Claude writes summa
 
 Summaries follow [S. Keshav's three-pass reading method](https://web.stanford.edu/class/ee384m/Handouts/HowtoReadPaper.pdf) for papers. Books and reports skip the three-pass framing and use a longer-form prompt instead.
 
+There's also a **native macOS app** in [`macapp/`](macapp/) — a standalone SwiftUI catalog over the same iCloud folder. It does ingest, tagging, ratings, read/unread, and search natively; no Python required. The Python CLI here adds the LLM-driven extras (Keshav summaries, embeddings, recommendations, arXiv discovery). The two share the same on-disk format and coexist.
+
 ---
 
 ## For Claude / agents working in this repo

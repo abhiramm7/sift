@@ -15,3 +15,9 @@ config.toml
 
 # Static site export — published from a separate site repo, not the code repo.
 site/
+
+# macapp build artifacts
+macapp/.build/
+macapp/.swiftpm/
+macapp/PaperManager.app/
+macapp/*.dmg
