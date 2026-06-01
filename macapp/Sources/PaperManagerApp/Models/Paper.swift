@@ -125,6 +125,7 @@ struct Paper: Codable, Identifiable, Hashable {
 enum SortPreset: String, CaseIterable, Identifiable, Hashable {
     case recent
     case oldest
+    case ratingHighest    // applied in LibraryStore-aware code; comparators=[]
     case titleAZ
     case titleZA
     case yearNewest
@@ -134,12 +135,13 @@ enum SortPreset: String, CaseIterable, Identifiable, Hashable {
 
     var label: String {
         switch self {
-        case .recent:     return "Recently added"
-        case .oldest:     return "Added (oldest first)"
-        case .titleAZ:    return "Title (A → Z)"
-        case .titleZA:    return "Title (Z → A)"
-        case .yearNewest: return "Year (newest first)"
-        case .yearOldest: return "Year (oldest first)"
+        case .recent:        return "Recently added"
+        case .oldest:        return "Added (oldest first)"
+        case .ratingHighest: return "Rating (high → low)"
+        case .titleAZ:       return "Title (A → Z)"
+        case .titleZA:       return "Title (Z → A)"
+        case .yearNewest:    return "Year (newest first)"
+        case .yearOldest:    return "Year (oldest first)"
         }
     }
 
@@ -147,21 +149,29 @@ enum SortPreset: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .recent, .yearNewest:        return "arrow.down"
         case .oldest, .yearOldest:        return "arrow.up"
+        case .ratingHighest:              return "star.fill"
         case .titleAZ:                    return "textformat.abc"
         case .titleZA:                    return "textformat.abc.dottedunderline"
         }
     }
 
+    /// Whether this sort needs LibraryStore.prefs (i.e. can't be expressed as a
+    /// KeyPathComparator over the immutable Paper struct).
+    var needsPrefs: Bool {
+        self == .ratingHighest
+    }
+
     var comparators: [KeyPathComparator<Paper>] {
         switch self {
-        case .recent:     return [KeyPathComparator(\Paper.addedSort, order: .reverse)]
-        case .oldest:     return [KeyPathComparator(\Paper.addedSort, order: .forward)]
-        case .titleAZ:    return [KeyPathComparator(\Paper.titleSort, order: .forward)]
-        case .titleZA:    return [KeyPathComparator(\Paper.titleSort, order: .reverse)]
-        case .yearNewest: return [KeyPathComparator(\Paper.yearSort, order: .reverse),
-                                  KeyPathComparator(\Paper.addedSort, order: .reverse)]
-        case .yearOldest: return [KeyPathComparator(\Paper.yearSort, order: .forward),
-                                  KeyPathComparator(\Paper.addedSort, order: .reverse)]
+        case .recent:        return [KeyPathComparator(\Paper.addedSort, order: .reverse)]
+        case .oldest:        return [KeyPathComparator(\Paper.addedSort, order: .forward)]
+        case .ratingHighest: return []  // handled by caller using prefs
+        case .titleAZ:       return [KeyPathComparator(\Paper.titleSort, order: .forward)]
+        case .titleZA:       return [KeyPathComparator(\Paper.titleSort, order: .reverse)]
+        case .yearNewest:    return [KeyPathComparator(\Paper.yearSort, order: .reverse),
+                                     KeyPathComparator(\Paper.addedSort, order: .reverse)]
+        case .yearOldest:    return [KeyPathComparator(\Paper.yearSort, order: .forward),
+                                     KeyPathComparator(\Paper.addedSort, order: .reverse)]
         }
     }
 }

@@ -42,13 +42,20 @@ app at it — your existing papers, tags, ratings, and read status all show up.
 
 ## Organizing
 
-- **Filters** (left sidebar): All / Unread / Saved, by kind (paper / book /
-  report), or by tag.
-- **Sort** (toolbar): by recency, title, or year. Or click column headers.
+- **Filters** (left sidebar): All / Unread / Saved / Rated 4+, by kind (paper /
+  book / report), or by tag. The tag list shows the top 40 by default; click
+  *Show all* for the full list with an inline search box.
+- **Sort** (toolbar): by recency, title, year, or rating. Or click column headers.
+- **Columns** (paper list): bookmark, read-state dot, title, authors,
+  ★ rating, year, added date, kind.
 - **Search** (toolbar): matches title, authors, tags, venue.
 - **Rate** (detail pane): 1–5 stars. Click the same star again to clear.
 - **Read / Unread** (detail pane or right-click): toggles a flag per paper.
 - **Save** (detail pane or right-click): bookmarks the paper to the *Saved* filter.
+- **Edit title / kind** (detail pane): double-click the title to edit;
+  click the kind menu to change between paper / book / report.
+- **Edit user tags** (detail pane): type into the *Tags* row to add (commas
+  split multiple tags), click a chip's ✕ to remove.
 - **Delete** (detail pane, right-click, or **⌫**): moves the paper to Trash.
   Reversible from Finder until you empty the Trash.
 
@@ -113,8 +120,8 @@ project files.
 
 ## What it doesn't do yet
 
-- Inline tag / title / kind editing — the LLM heuristics fix obvious junk but
-  real-but-wrong values still require Finder + a JSON editor for now.
+- Citation export (BibTeX / RIS / DOI lookups). Out of current scope — could
+  arrive later as an optional add-on; not a built-in.
 - PDF annotations (deliberately — open in Preview for that).
 - CloudKit / push sync (uses iCloud Drive, which means a few-second delay).
 

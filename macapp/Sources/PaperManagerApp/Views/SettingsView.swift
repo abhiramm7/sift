@@ -29,6 +29,9 @@ struct SettingsView: View {
             }
 
             Section("Auto-tagging") {
+                Text("Optional. The app works without an LLM — ingest, search, ratings, and delete all work the same. Configure a provider only if you want titles, tags, and summaries filled in automatically.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 LabeledContent("Use") {
                     Picker("", selection: Binding(
                         get: { store.llmPreference },

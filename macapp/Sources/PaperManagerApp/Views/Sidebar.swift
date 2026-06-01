@@ -3,6 +3,10 @@ import SwiftUI
 struct Sidebar: View {
     @EnvironmentObject var store: LibraryStore
     @Binding var filter: LibraryFilter
+    @State private var tagSearch: String = ""
+    @State private var showAllTags: Bool = false
+
+    private let initialTagCount = 40
 
     var body: some View {
         List(selection: Binding(
@@ -13,12 +17,15 @@ struct Sidebar: View {
                 Label("All", systemImage: "tray.full")
                     .badge(store.papers.count)
                     .tag(LibraryFilter.all)
-                Label("Unread", systemImage: "circle")
+                Label("Unread", systemImage: "circle.dashed")
                     .badge(unreadCount)
                     .tag(LibraryFilter.unread)
                 Label("Saved", systemImage: "bookmark")
                     .badge(starredCount)
                     .tag(LibraryFilter.starred)
+                Label("Rated 4+", systemImage: "star.leadinghalf.filled")
+                    .badge(highlyRatedCount)
+                    .tag(LibraryFilter.highlyRated)
             }
 
             Section("Kind") {
@@ -30,16 +37,50 @@ struct Sidebar: View {
             }
 
             if !store.allTags.isEmpty {
-                Section("Tags") {
-                    ForEach(store.allTags.prefix(40), id: \.tag) { entry in
+                Section {
+                    if showAllTags {
+                        TextField("Filter tags", text: $tagSearch)
+                            .textFieldStyle(.roundedBorder)
+                            .padding(.vertical, 2)
+                    }
+                    ForEach(filteredTags, id: \.tag) { entry in
                         Label("#\(entry.tag)", systemImage: "tag")
                             .badge(entry.count)
                             .tag(LibraryFilter.tag(entry.tag))
+                    }
+                    if !showAllTags, store.allTags.count > initialTagCount {
+                        Button("Show all \(store.allTags.count) tags…") {
+                            showAllTags = true
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                    }
+                } header: {
+                    HStack {
+                        Text("Tags")
+                        Spacer()
+                        if showAllTags {
+                            Button("Show top \(initialTagCount)") {
+                                showAllTags = false
+                                tagSearch = ""
+                            }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
+                        }
                     }
                 }
             }
         }
         .listStyle(.sidebar)
+    }
+
+    private var filteredTags: [(tag: String, count: Int)] {
+        let all = store.allTags
+        let scoped = showAllTags ? all : Array(all.prefix(initialTagCount))
+        let q = tagSearch.lowercased().trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return scoped }
+        return scoped.filter { $0.tag.lowercased().contains(q) }
     }
 
     private var unreadCount: Int {
@@ -48,5 +89,9 @@ struct Sidebar: View {
 
     private var starredCount: Int {
         store.papers.filter { store.prefs(for: $0.id).saved }.count
+    }
+
+    private var highlyRatedCount: Int {
+        store.papers.filter { (store.prefs(for: $0.id).rating ?? 0) >= 4 }.count
     }
 }

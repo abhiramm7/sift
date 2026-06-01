@@ -11,11 +11,21 @@ struct PaperList: View {
     var body: some View {
         Table(of: Paper.self, selection: $selectedID, sortOrder: $sortOrder) {
             TableColumn("") { p in
-                Image(systemName: store.prefs(for: p.id).saved ? "bookmark.fill" : "")
-                    .foregroundStyle(Color.accentColor)
+                let saved = store.prefs(for: p.id).saved
+                Image(systemName: saved ? "bookmark.fill" : "bookmark")
+                    .foregroundStyle(saved ? Color.accentColor : Color.secondary.opacity(0.25))
                     .frame(width: 14)
             }
             .width(20)
+
+            TableColumn("") { p in
+                let read = store.prefs(for: p.id).read
+                Circle()
+                    .fill(read ? Color.clear : Color.accentColor)
+                    .frame(width: 7, height: 7)
+                    .help(read ? "Read" : "Unread")
+            }
+            .width(14)
 
             TableColumn("Title", value: \Paper.titleSort) { p in
                 Text(p.title)
@@ -27,6 +37,23 @@ struct PaperList: View {
                 Text(p.authorsShort).foregroundStyle(.secondary).lineLimit(1)
             }
             .width(min: 100, ideal: 160)
+
+            TableColumn("★") { p in
+                let r = store.prefs(for: p.id).rating ?? 0
+                if r > 0 {
+                    HStack(spacing: 0) {
+                        ForEach(1...5, id: \.self) { i in
+                            Image(systemName: i <= r ? "star.fill" : "star")
+                                .font(.caption2)
+                                .foregroundStyle(i <= r ? .yellow : Color.secondary.opacity(0.25))
+                        }
+                    }
+                    .help("\(r) star\(r == 1 ? "" : "s")")
+                } else {
+                    Text("").frame(maxWidth: .infinity)
+                }
+            }
+            .width(min: 60, ideal: 64, max: 72)
 
             TableColumn("Year", value: \Paper.yearSort) { p in
                 Text(p.year.map(String.init) ?? "—")
@@ -103,7 +130,16 @@ struct PaperList: View {
     }
 
     private var sorted: [Paper] {
-        papers.sorted(using: sortOrder)
+        // sortOrder empty means the caller wants a prefs-aware sort (rating).
+        // Otherwise apply the standard KeyPath sort over Paper fields.
+        guard sortOrder.isEmpty else { return papers.sorted(using: sortOrder) }
+        // Rating sort: highest first; ties broken by added date (newest first).
+        return papers.sorted { lhs, rhs in
+            let lr = store.prefs(for: lhs.id).rating ?? 0
+            let rr = store.prefs(for: rhs.id).rating ?? 0
+            if lr != rr { return lr > rr }
+            return (lhs.addedDate ?? .distantPast) > (rhs.addedDate ?? .distantPast)
+        }
     }
 
     private var emptyMessage: String {

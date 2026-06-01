@@ -167,10 +167,70 @@ final class LibraryStore: ObservableObject {
         let dir = config.paperDir(id)
         NSWorkspace.shared.recycle([dir]) { _, _ in }
         papers.removeAll { $0.id == id }
-        if prefs[id] != nil {
-            prefs.removeValue(forKey: id)
-            writePrefs()
+        // Always rewrite prefs.json — a prior session may have written an entry
+        // even if this session never loaded it. Without this, deleted papers
+        // leave ghost prefs entries on disk that accumulate over time.
+        prefs.removeValue(forKey: id)
+        writePrefs()
+    }
+
+    // MARK: - Metadata edits (write back to metadata.json)
+
+    /// Read-modify-write a paper's metadata.json on disk. Then refresh that
+    /// paper's entry in `papers` so the UI sees the change.
+    private func updateMetadata(id: String, mutate: (inout [String: Any]) -> Void) {
+        let url = config.metadataURL(id)
+        guard let data = try? Data(contentsOf: url),
+              var obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            lastScanError = "Couldn't read \(url.lastPathComponent)"
+            return
         }
+        mutate(&obj)
+        do {
+            let out = try JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys])
+            try out.write(to: url, options: .atomic)
+            refreshPaperOnDisk(id: id)
+        } catch {
+            lastScanError = "Couldn't save \(url.lastPathComponent): \(error.localizedDescription)"
+        }
+    }
+
+    /// Set the paper's title. Used by the inline editor when PDFKit gave a junky
+    /// title or the LLM heuristic missed a real-but-wrong title.
+    func setTitle(_ title: String, for id: String) {
+        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return }
+        updateMetadata(id: id) { $0["title"] = cleaned }
+    }
+
+    /// Set the paper's kind (paper / book / report).
+    func setKind(_ kind: PaperKind, for id: String) {
+        updateMetadata(id: id) { $0["kind"] = kind.rawValue }
+    }
+
+    /// Set the paper's user_tags. Replaces the entire array — caller normalizes.
+    func setUserTags(_ tags: [String], for id: String) {
+        let cleaned = tags
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { !$0.isEmpty }
+        var seen = Set<String>()
+        let deduped = cleaned.filter { seen.insert($0).inserted }
+        updateMetadata(id: id) { $0["user_tags"] = deduped }
+        // Refresh vocabulary so the sidebar tag list and LLM prompt see the change.
+        tagStore.rebuildFromPapers(papers)
+    }
+
+    func addUserTag(_ tag: String, for id: String) {
+        guard let p = papers.first(where: { $0.id == id }) else { return }
+        let new = p.user_tags + [tag]
+        setUserTags(new, for: id)
+    }
+
+    func removeUserTag(_ tag: String, for id: String) {
+        guard let p = papers.first(where: { $0.id == id }) else { return }
+        let lower = tag.lowercased()
+        let new = p.user_tags.filter { $0.lowercased() != lower }
+        setUserTags(new, for: id)
     }
 
     func setStarred(_ saved: Bool, for id: String) {

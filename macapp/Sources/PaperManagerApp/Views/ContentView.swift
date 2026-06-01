@@ -5,6 +5,7 @@ enum LibraryFilter: Hashable {
     case all
     case unread
     case starred
+    case highlyRated    // rating >= 4
     case kind(PaperKind)
     case tag(String)
 }
@@ -49,6 +50,8 @@ struct ContentView: View {
                     ForEach(SortPreset.allCases) { preset in
                         Button {
                             sortPreset = preset
+                            // Rating sort needs prefs; PaperList sees empty
+                            // comparators and applies the rating-aware sort.
                             sortOrder = preset.comparators
                         } label: {
                             if sortPreset == preset {
@@ -153,7 +156,7 @@ struct ContentView: View {
                 store.tagAllUntagged()
             } label: {
                 if count > 0 {
-                    Label("Tag \(count)", systemImage: "sparkles")
+                    Label("Tag \(count) paper\(count == 1 ? "" : "s")", systemImage: "sparkles")
                 } else {
                     Label("Tag all", systemImage: "sparkles")
                 }
@@ -211,6 +214,8 @@ struct ContentView: View {
             base = store.papers.filter { !store.prefs(for: $0.id).read }
         case .starred:
             base = store.papers.filter { store.prefs(for: $0.id).saved }
+        case .highlyRated:
+            base = store.papers.filter { (store.prefs(for: $0.id).rating ?? 0) >= 4 }
         case .kind(let k):
             base = store.papers.filter { $0.kind == k }
         case .tag(let t):

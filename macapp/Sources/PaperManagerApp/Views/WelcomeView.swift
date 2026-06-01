@@ -12,29 +12,21 @@ struct WelcomeView: View {
     @State private var statusIsError: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Welcome to PaperManager")
                     .font(.largeTitle.weight(.semibold))
-                Text("A lightweight catalog for research papers and books. Your library is just a folder of PDFs and JSON — keep it in iCloud Drive and it syncs everywhere.")
+                Text("A fast, native catalog for research papers — no accounts, no server, no monthly fee. Your library is a regular folder of PDFs and JSON, so you can move it, back it up, or open files in any app.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Divider()
-
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text("Where should your library live?")
                     .font(.headline)
 
-                LabeledContent("Folder") {
-                    HStack {
-                        TextField("", text: $chosenPath)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(.body, design: .monospaced))
-                        Button("Choose…", action: chooseFolder)
-                    }
-                }
+                // Friendly summary of where the library will be, not the raw path.
+                folderSummary
 
                 iCloudHint
 
@@ -47,22 +39,55 @@ struct WelcomeView: View {
 
             Spacer()
 
-            HStack {
-                Button("Use iCloud Drive (recommended)") {
-                    chosenPath = AppConfig.defaultRoot().path
-                }
-                .help("Default location inside iCloud Drive")
-
+            HStack(spacing: 8) {
+                Button("Choose a different folder…", action: chooseFolder)
                 Spacer()
-
-                Button("Continue") { commit() }
+                Button("Get started") { commit() }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .disabled(chosenPath.isEmpty)
             }
         }
         .padding(28)
-        .frame(width: 560, height: 380)
+        .frame(width: 560, height: 400)
+    }
+
+    /// Shows the chosen location as a human-readable line ("iCloud Drive · PaperManager"
+    /// or just the folder name for non-iCloud paths). Raw path is in the tooltip.
+    @ViewBuilder
+    private var folderSummary: some View {
+        let expanded = (chosenPath as NSString).expandingTildeInPath
+        let url = URL(fileURLWithPath: expanded)
+        let inICloud = AppConfig.isInICloudDrive(url)
+        let friendly: String = {
+            if inICloud {
+                return "iCloud Drive · " + url.lastPathComponent
+            }
+            // Show "~/Foo/Bar/Baz" style
+            let home = NSHomeDirectory()
+            if expanded.hasPrefix(home) {
+                return "~" + expanded.dropFirst(home.count)
+            }
+            return expanded
+        }()
+        HStack(spacing: 10) {
+            Image(systemName: inICloud ? "icloud" : "folder")
+                .foregroundStyle(.secondary)
+                .font(.title3)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(friendly)
+                    .font(.body.weight(.medium))
+                Text(expanded)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+            }
+            Spacer()
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.08)))
     }
 
     @ViewBuilder

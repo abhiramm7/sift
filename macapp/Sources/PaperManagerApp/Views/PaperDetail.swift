@@ -7,6 +7,13 @@ struct PaperDetail: View {
     @State private var summary: String?
     @State private var loadedID: String?
     @State private var showDeleteConfirm: Bool = false
+    // Title editing
+    @State private var editingTitle: Bool = false
+    @State private var titleDraft: String = ""
+    // User-tag entry
+    @State private var newTagDraft: String = ""
+    // Raw metadata disclosure (hidden by default)
+    @State private var showRawMeta: Bool = false
 
     var body: some View {
         ScrollView {
@@ -37,9 +44,27 @@ struct PaperDetail: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(paper.title)
-                .font(.title2.weight(.semibold))
-                .textSelection(.enabled)
+            if editingTitle {
+                HStack(spacing: 6) {
+                    TextField("Title", text: $titleDraft)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.title2)
+                        .onSubmit { commitTitleEdit() }
+                    Button("Save", action: commitTitleEdit)
+                        .keyboardShortcut(.defaultAction)
+                    Button("Cancel") { editingTitle = false }
+                        .keyboardShortcut(.cancelAction)
+                }
+            } else {
+                Text(paper.title)
+                    .font(.title2.weight(.semibold))
+                    .textSelection(.enabled)
+                    .onTapGesture(count: 2) { startTitleEdit() }
+                    .help("Double-click to edit")
+                    .contextMenu {
+                        Button("Edit title…") { startTitleEdit() }
+                    }
+            }
             if !paper.authors.isEmpty {
                 Text(paper.authors.joined(separator: ", "))
                     .foregroundStyle(.secondary)
@@ -58,11 +83,41 @@ struct PaperDetail: View {
                         .labelStyle(.titleAndIcon)
                         .font(.caption)
                 }
-                Label(paper.kind.label, systemImage: paper.kind.symbol)
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
+                Menu {
+                    ForEach(PaperKind.allCases, id: \.self) { k in
+                        Button {
+                            store.setKind(k, for: paper.id)
+                        } label: {
+                            if k == paper.kind {
+                                Label(k.label, systemImage: "checkmark")
+                            } else {
+                                Text(k.label)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(paper.kind.label, systemImage: paper.kind.symbol)
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("Change kind")
             }
         }
+    }
+
+    private func startTitleEdit() {
+        titleDraft = paper.title
+        editingTitle = true
+    }
+
+    private func commitTitleEdit() {
+        let cleaned = titleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !cleaned.isEmpty, cleaned != paper.title {
+            store.setTitle(cleaned, for: paper.id)
+        }
+        editingTitle = false
     }
 
     private var actionRow: some View {
@@ -86,14 +141,6 @@ struct PaperDetail: View {
                     NSWorkspace.shared.open(url)
                 } label: {
                     Label("arXiv", systemImage: "link")
-                }
-            }
-            if let doi = paper.doi, !doi.isEmpty,
-               let url = URL(string: "https://doi.org/\(doi)") {
-                Button {
-                    NSWorkspace.shared.open(url)
-                } label: {
-                    Label("DOI", systemImage: "link")
                 }
             }
             Spacer()
@@ -148,8 +195,7 @@ struct PaperDetail: View {
                 }
             }
             .font(.title3)
-
-            Divider().frame(height: 20)
+            .padding(.trailing, 12)
 
             Toggle(isOn: Binding(
                 get: { prefs.read },
@@ -181,11 +227,10 @@ struct PaperDetail: View {
         let apps = filterAutoTags(paper.auto?.application_areas ?? [], against: userTags)
         let methods = filterAutoTags(paper.auto?.methods ?? [], against: userTags)
         let isTagging = store.taggingInFlight.contains(paper.id)
-        let hasAny = !userTags.isEmpty || !topics.isEmpty || !apps.isEmpty || !methods.isEmpty
         return VStack(alignment: .leading, spacing: 8) {
-            if !userTags.isEmpty {
-                tagChipRow(label: "Tags", tags: userTags, style: .user)
-            }
+            // User tags row — always shown with the inline add field so the
+            // user always has a path to add their own tag even on cold start.
+            userTagsRow(userTags: userTags)
             if !topics.isEmpty {
                 tagChipRow(label: "Topics", tags: topics, style: .auto)
             }
@@ -196,11 +241,6 @@ struct PaperDetail: View {
                 tagChipRow(label: "Methods", tags: methods, style: .auto)
             }
             HStack(spacing: 8) {
-                if !hasAny && !isTagging {
-                    Text("No tags")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
                 if isTagging {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
@@ -222,6 +262,56 @@ struct PaperDetail: View {
                 Spacer()
             }
         }
+    }
+
+    /// The user-tags row, with an inline text field for adding new tags and
+    /// click-to-delete on existing chips.
+    private func userTagsRow(userTags: [String]) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text("Tags")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 86, alignment: .trailing)
+                .padding(.top, 6)
+            FlowLayout(spacing: 6) {
+                ForEach(userTags, id: \.self) { t in
+                    Button {
+                        store.removeUserTag(t, for: paper.id)
+                    } label: {
+                        HStack(spacing: 3) {
+                            Text("#\(t)")
+                            Image(systemName: "xmark")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color.accentColor.opacity(0.18)))
+                        .foregroundStyle(.primary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Click to remove")
+                }
+                TextField("add tag…", text: $newTagDraft)
+                    .textFieldStyle(.plain)
+                    .frame(minWidth: 80, maxWidth: 140)
+                    .onSubmit { commitNewTag() }
+            }
+        }
+    }
+
+    private func commitNewTag() {
+        let cleaned = newTagDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return }
+        // Accept comma-separated to add several at once.
+        let parts = cleaned.split(separator: ",").map {
+            $0.trimmingCharacters(in: .whitespaces).lowercased()
+        }.filter { !$0.isEmpty }
+        for t in parts {
+            store.addUserTag(t, for: paper.id)
+        }
+        newTagDraft = ""
     }
 
     private enum ChipStyle { case user, auto }
@@ -285,14 +375,31 @@ struct PaperDetail: View {
     }
 
     private var metaGrid: some View {
-        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
-            metaRow("ID", paper.id)
-            if let p = paper.pages { metaRow("Pages", String(p)) }
-            metaRow("Source", paper.source)
-            if !paper.added_at.isEmpty { metaRow("Added", paper.added_at) }
-            if !paper.sha256.isEmpty { metaRow("SHA-256", String(paper.sha256.prefix(16)) + "…") }
+        DisclosureGroup(isExpanded: $showRawMeta) {
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
+                metaRow("ID", paper.id)
+                if let p = paper.pages { metaRow("Pages", String(p)) }
+                metaRow("Source", paper.source)
+                if !paper.added_at.isEmpty { metaRow("Added", Self.formatAdded(paper.added_at)) }
+                if !paper.sha256.isEmpty { metaRow("SHA-256", String(paper.sha256.prefix(12)) + "…") }
+            }
+            .font(.callout)
+            .padding(.top, 4)
+        } label: {
+            Text("Details")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
         }
-        .font(.callout)
+    }
+
+    private static func formatAdded(_ iso: String) -> String {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        guard let d = f.date(from: iso) else { return iso }
+        let out = DateFormatter()
+        out.dateStyle = .medium
+        out.timeStyle = .none
+        return out.string(from: d)
     }
 
     private func metaRow(_ label: String, _ value: String) -> some View {
