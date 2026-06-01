@@ -41,6 +41,7 @@ mkdir -p "$APP_DIR/Contents/MacOS"
 mkdir -p "$APP_DIR/Contents/Resources"
 cp "$BIN_PATH" "$APP_DIR/Contents/MacOS/$EXE_NAME"
 cp Resources/Info.plist "$APP_DIR/Contents/Info.plist"
+cp Resources/AppIcon.icns "$APP_DIR/Contents/Resources/AppIcon.icns"
 printf "APPL????" > "$APP_DIR/Contents/PkgInfo"
 
 echo "==> codesign --force --deep --sign -"

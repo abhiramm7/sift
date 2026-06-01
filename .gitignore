@@ -21,3 +21,6 @@ macapp/.build/
 macapp/.swiftpm/
 macapp/PaperManager.app/
 macapp/*.dmg
+
+# Claude Code per-user config (allowlist tweaks, machine-specific permissions)
+.claude/settings.local.json

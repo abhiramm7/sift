@@ -42,13 +42,46 @@ app at it — your existing papers, tags, ratings, and read status all show up.
 
 ## Organizing
 
-- **Filters** (left sidebar): All / Unread / Starred, by kind (paper / book /
+- **Filters** (left sidebar): All / Unread / Saved, by kind (paper / book /
   report), or by tag.
 - **Sort** (toolbar): by recency, title, or year. Or click column headers.
 - **Search** (toolbar): matches title, authors, tags, venue.
 - **Rate** (detail pane): 1–5 stars. Click the same star again to clear.
 - **Read / Unread** (detail pane or right-click): toggles a flag per paper.
-- **Star** (detail pane or right-click): pins to the *Starred* filter.
+- **Save** (detail pane or right-click): bookmarks the paper to the *Saved* filter.
+- **Delete** (detail pane, right-click, or **⌫**): moves the paper to Trash.
+  Reversible from Finder until you empty the Trash.
+
+## Auto-tagging (optional)
+
+If you have **Claude Code** or **Ollama** installed locally, the app uses them
+to fill in topical metadata at ingest time — fully optional, ingest works
+fine without either.
+
+- **Tags by category.** Each paper gets three chip rows in the detail pane:
+  **Topics** (subject areas), **Applications** (real-world domains), and
+  **Methods** (techniques used). All categories are searchable and surface in
+  the sidebar tag list.
+- **Title & author cleanup.** If PDFKit gave you a bogus title
+  (`1706.03762v7`, `Untitled`, a filename) or "Microsoft Word" as the author,
+  the LLM proposes a replacement from the document text. Real titles you've
+  edited are never touched.
+- **Summary.** A short Markdown summary — TL;DR + key contributions — written
+  to `<library>/library/<id>/summary.md` and shown in the detail pane.
+- **Tag all** sparkle button in the toolbar processes any paper missing
+  tags / a clean title / authors / summary. Runs 3 concurrently. Red stop
+  button cancels mid-batch and kills the in-flight LLM processes.
+
+**Configure** in Settings:
+
+- **Use:** Auto (Claude preferred), Claude only, Ollama only, or Off.
+- **Claude model:** `default` / `haiku` / `sonnet` / `opus`.
+- **Ollama model:** any locally-installed chat model. Practical floor ~3B
+  parameters — anything smaller can't reliably emit the structured schema.
+  `qwen3.5:4b-mlx` is the proven sweet spot on Apple Silicon (~10s/paper).
+
+Auto-on-ingest reads the first 3 pages of each PDF (fast, cheap). The
+**Regenerate** button in the detail pane re-runs against the whole paper.
 
 ## On-disk layout
 
@@ -80,10 +113,10 @@ project files.
 
 ## What it doesn't do yet
 
-- Generate LLM summaries (deferred — handled by the Python `paper` CLI for now)
-- Auto-tagging via LLM (planned)
-- PDF annotations (deliberately — open in Preview for that)
-- CloudKit / push sync (uses iCloud Drive, which means a few-second delay)
+- Inline tag / title / kind editing — the LLM heuristics fix obvious junk but
+  real-but-wrong values still require Finder + a JSON editor for now.
+- PDF annotations (deliberately — open in Preview for that).
+- CloudKit / push sync (uses iCloud Drive, which means a few-second delay).
 
 ## File locations to know
 

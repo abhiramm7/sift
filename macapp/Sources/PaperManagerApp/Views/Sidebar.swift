@@ -16,7 +16,7 @@ struct Sidebar: View {
                 Label("Unread", systemImage: "circle")
                     .badge(unreadCount)
                     .tag(LibraryFilter.unread)
-                Label("Starred", systemImage: "star")
+                Label("Saved", systemImage: "bookmark")
                     .badge(starredCount)
                     .tag(LibraryFilter.starred)
             }

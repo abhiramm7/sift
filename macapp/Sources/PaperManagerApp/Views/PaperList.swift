@@ -6,12 +6,13 @@ struct PaperList: View {
     @Binding var selectedID: String?
     @Binding var searchText: String
     @Binding var sortOrder: [KeyPathComparator<Paper>]
+    @State private var pendingDeleteID: String?
 
     var body: some View {
         Table(of: Paper.self, selection: $selectedID, sortOrder: $sortOrder) {
             TableColumn("") { p in
-                Image(systemName: store.prefs(for: p.id).saved ? "star.fill" : "")
-                    .foregroundStyle(.yellow)
+                Image(systemName: store.prefs(for: p.id).saved ? "bookmark.fill" : "")
+                    .foregroundStyle(Color.accentColor)
                     .frame(width: 14)
             }
             .width(20)
@@ -66,6 +67,39 @@ struct PaperList: View {
                 )
             }
         }
+        .onDeleteCommand {
+            if let id = selectedID { pendingDeleteID = id }
+        }
+        .alert(
+            "Move paper to Trash?",
+            isPresented: Binding(
+                get: { pendingDeleteID != nil },
+                set: { if !$0 { pendingDeleteID = nil } }
+            ),
+            presenting: pendingDeleteID
+        ) { id in
+            Button("Move to Trash", role: .destructive) {
+                let nextSelection = neighbor(of: id)
+                store.deletePaper(id)
+                selectedID = nextSelection
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { id in
+            if let p = store.papers.first(where: { $0.id == id }) {
+                Text("\"\(p.title)\" will be moved to the Trash. The PDF and metadata are reversible from the Finder until you empty the Trash.")
+            } else {
+                Text("The paper will be moved to the Trash.")
+            }
+        }
+    }
+
+    /// Pick the next selection target after deleting `id`: prefer the row below,
+    /// fall back to the one above, then nil.
+    private func neighbor(of id: String) -> String? {
+        guard let i = sorted.firstIndex(where: { $0.id == id }) else { return nil }
+        if i + 1 < sorted.count { return sorted[i + 1].id }
+        if i - 1 >= 0 { return sorted[i - 1].id }
+        return nil
     }
 
     private var sorted: [Paper] {
@@ -100,7 +134,7 @@ struct PaperList: View {
         Button(prefs.read ? "Mark as Unread" : "Mark as Read") {
             store.setRead(!prefs.read, for: p.id)
         }
-        Button(prefs.saved ? "Unstar" : "Star") {
+        Button(prefs.saved ? "Remove from Saved" : "Save") {
             store.setStarred(!prefs.saved, for: p.id)
         }
         Menu("Rate") {
@@ -126,6 +160,10 @@ struct PaperList: View {
                     NSWorkspace.shared.open(url)
                 }
             }
+        }
+        Divider()
+        Button("Move to Trash…", role: .destructive) {
+            pendingDeleteID = p.id
         }
     }
 }

@@ -7,6 +7,8 @@ struct CodeLink: Codable, Hashable {
 
 struct AutoMeta: Codable, Hashable {
     var tags: [String]?
+    var topics: [String]?
+    var application_areas: [String]?
     var methods: [String]?
     var datasets: [String]?
     var claims: [String]?
@@ -80,11 +82,18 @@ struct Paper: Codable, Identifiable, Hashable {
         auto = try? c.decodeIfPresent(AutoMeta.self, forKey: .auto)
     }
 
-    /// Union of user-supplied and auto-generated tags, deduplicated, lowercased.
+    /// Union of every tag-like field, lowercased & deduplicated. This is what
+    /// search and the sidebar tag filter match against, so adding a tag here
+    /// makes it findable everywhere.
     var allTags: [String] {
         var seen = Set<String>()
         var out: [String] = []
-        for t in user_tags + (auto?.tags ?? []) {
+        let combined = user_tags
+            + (auto?.tags ?? [])
+            + (auto?.topics ?? [])
+            + (auto?.application_areas ?? [])
+            + (auto?.methods ?? [])
+        for t in combined {
             let k = t.lowercased()
             if !seen.contains(k) {
                 seen.insert(k)

@@ -128,6 +128,9 @@ struct AddSheet: View {
                 ? "Already in library (id \(result.paperId)) — metadata refreshed."
                 : "Added paper \(result.paperId)."
             await store.rescan()
+            if !result.alreadyExisted {
+                store.generateTagsInBackground(for: result.paperId)
+            }
         } catch {
             statusLine = error.localizedDescription
             statusIsError = true

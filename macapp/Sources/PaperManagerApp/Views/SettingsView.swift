@@ -5,8 +5,6 @@ struct SettingsView: View {
     @EnvironmentObject var store: LibraryStore
 
     @State private var rootPath: String = ""
-    @State private var cliPath: String = UserDefaults.standard.string(forKey: CLIRunner.storedPathKey) ?? ""
-    @State private var detectedCLI: String = ""
 
     var body: some View {
         Form {
@@ -30,34 +28,86 @@ struct SettingsView: View {
                 }
             }
 
-            Section("paper CLI") {
-                LabeledContent("Path") {
-                    HStack {
-                        TextField("(auto)", text: $cliPath)
-                            .textFieldStyle(.roundedBorder)
-                        Button("Detect") {
-                            detectedCLI = CLIRunner.resolveBinary()?.path ?? "not found in standard paths"
-                            if let url = CLIRunner.resolveBinary() { cliPath = url.path }
+            Section("Auto-tagging") {
+                LabeledContent("Use") {
+                    Picker("", selection: Binding(
+                        get: { store.llmPreference },
+                        set: { store.llmPreference = $0 }
+                    )) {
+                        ForEach(LLMTagger.Preference.allCases) { pref in
+                            Text(pref.label).tag(pref)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: 220)
+                }
+
+                if store.llmPreference == .auto || store.llmPreference == .claude {
+                    LabeledContent("Claude model") {
+                        Picker("", selection: Binding(
+                            get: { store.claudeModel },
+                            set: { store.claudeModel = $0 }
+                        )) {
+                            ForEach(LLMTagger.claudeModelChoices, id: \.self) { m in
+                                Text(m.capitalized).tag(m)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: 220)
+                    }
+                }
+
+                if store.llmPreference == .auto || store.llmPreference == .ollama {
+                    LabeledContent("Ollama model") {
+                        HStack(spacing: 6) {
+                            Picker("", selection: Binding(
+                                get: { store.ollamaModel },
+                                set: { store.ollamaModel = $0 }
+                            )) {
+                                Text("(auto)").tag("")
+                                ForEach(store.availableOllamaModels, id: \.self) { m in
+                                    Text(m).tag(m)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .frame(maxWidth: 220)
+                            Button {
+                                Task { await store.refreshLLMProvider() }
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Refresh list of installed Ollama models")
                         }
                     }
                 }
-                if !detectedCLI.isEmpty {
-                    Text(detectedCLI).font(.caption).foregroundStyle(.secondary)
-                }
-                HStack {
-                    Spacer()
-                    Button("Save") {
-                        if cliPath.isEmpty {
-                            UserDefaults.standard.removeObject(forKey: CLIRunner.storedPathKey)
-                        } else {
-                            UserDefaults.standard.set(cliPath, forKey: CLIRunner.storedPathKey)
+
+                LabeledContent("Detected") {
+                    HStack(spacing: 8) {
+                        Image(systemName: store.llmProvider.isAvailable
+                              ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(store.llmProvider.isAvailable ? .green : .orange)
+                        Text(store.llmProvider.label).font(.callout)
+                        Spacer()
+                        Button("Re-detect") {
+                            Task { await store.refreshLLMProvider() }
                         }
                     }
+                }
+                if let diag = store.llmDiagnostic, !diag.isEmpty {
+                    Text(diag)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                 }
             }
 
             Section("About") {
-                Text("PaperManager 0.1 — reads the iCloud folder created by `paper init`.")
+                let version = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "?"
+                Text("PaperManager \(version) — standalone macOS catalog. Stores everything as plain files in the folder above.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -65,6 +115,7 @@ struct SettingsView: View {
         .padding(16)
         .onAppear {
             rootPath = store.config.iCloudRoot.path
+            Task { await store.refreshLLMProvider() }
         }
     }
 

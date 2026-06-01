@@ -10,6 +10,43 @@ final class LibraryStore: ObservableObject {
     @Published var isScanning = false
     @Published var lastScanError: String?
 
+    /// Paper IDs currently mid-LLM-tagging. Views can use this for spinners.
+    @Published var taggingInFlight: Set<String> = []
+    /// Last detected LLM provider. Refreshed by `refreshLLMProvider()`.
+    @Published var llmProvider: LLMTagger.Provider = .unavailable
+    /// Hint shown in Settings when no provider resolves (or one is forced).
+    @Published var llmDiagnostic: String?
+    @Published var lastTaggerError: String?
+
+    /// User preference for which provider to use. Persisted to UserDefaults.
+    @Published var llmPreference: LLMTagger.Preference = LLMTagger.Preference(
+        rawValue: UserDefaults.standard.string(forKey: "PaperManager.llmPreference") ?? "auto"
+    ) ?? .auto {
+        didSet {
+            UserDefaults.standard.set(llmPreference.rawValue, forKey: "PaperManager.llmPreference")
+            Task { await refreshLLMProvider() }
+        }
+    }
+
+    /// User-selected Claude model alias ("default", "haiku", "sonnet", "opus", or a full model id).
+    @Published var claudeModel: String = UserDefaults.standard.string(forKey: "PaperManager.claudeModel") ?? "default" {
+        didSet {
+            UserDefaults.standard.set(claudeModel, forKey: "PaperManager.claudeModel")
+            Task { await refreshLLMProvider() }
+        }
+    }
+
+    /// User-pinned Ollama model name. Empty = auto-pick.
+    @Published var ollamaModel: String = UserDefaults.standard.string(forKey: "PaperManager.ollamaModel") ?? "" {
+        didSet {
+            UserDefaults.standard.set(ollamaModel, forKey: "PaperManager.ollamaModel")
+            Task { await refreshLLMProvider() }
+        }
+    }
+
+    /// Locally-installed Ollama chat models. Refreshed on demand for the Settings picker.
+    @Published var availableOllamaModels: [String] = []
+
     init(config: AppConfig = AppConfig.load()) {
         self.config = config
     }
@@ -118,12 +155,277 @@ final class LibraryStore: ObservableObject {
         writePrefs()
     }
 
+    /// Move the paper's library/<id>/ folder to the Trash and drop it from
+    /// in-memory state. Reversible — user can drag it back out of Trash.
+    func deletePaper(_ id: String) {
+        let dir = config.paperDir(id)
+        NSWorkspace.shared.recycle([dir]) { _, _ in }
+        papers.removeAll { $0.id == id }
+        if prefs[id] != nil {
+            prefs.removeValue(forKey: id)
+            writePrefs()
+        }
+    }
+
     func setStarred(_ saved: Bool, for id: String) {
         var e = prefs[id] ?? PrefsEntry()
         e.saved = saved
         e.updated_at = Self.isoNow()
         prefs[id] = e
         writePrefs()
+    }
+
+    // MARK: - LLM tagging
+
+    func refreshLLMProvider() async {
+        let (p, diag) = await LLMTagger.detectProvider(
+            llmPreference,
+            claudeModel: claudeModel,
+            ollamaModel: ollamaModel)
+        self.llmProvider = p
+        self.llmDiagnostic = diag
+        self.availableOllamaModels = await LLMTagger.listOllamaChatModels()
+    }
+
+    /// Read one paper's metadata.json from disk and replace it in `papers`.
+    private func refreshPaperOnDisk(id: String) {
+        let metaURL = config.metadataURL(id)
+        guard let data = try? Data(contentsOf: metaURL),
+              let p = try? JSONDecoder().decode(Paper.self, from: data) else { return }
+        if let idx = papers.firstIndex(where: { $0.id == id }) {
+            papers[idx] = p
+        }
+    }
+
+    /// Bulk-tagging progress. nil when idle.
+    @Published var bulkTagProgress: (done: Int, total: Int)? = nil
+
+    /// Handle to the currently-running bulk-tag task. Used to cancel it.
+    private var bulkTagTask: Task<Void, Never>?
+
+    /// Per-paper task handles for individual (non-bulk) tagging. Cancellable.
+    private var taggingTasks: [String: Task<Void, Never>] = [:]
+
+    /// How many papers to tag concurrently in bulk mode.
+    static let bulkConcurrency = 3
+
+    /// How much of the PDF the LLM sees.
+    enum TaggingMode {
+        case fast    // first 3 pages — cheap, fits any provider, good for tagging
+        case full    // provider's char cap — whole paper on Claude
+    }
+
+    /// Spawn a background task that runs the LLM tagger and writes results into
+    /// metadata.json / summary.md. Silent on failure (no-op if no provider).
+    /// - Parameter force: if false, skip papers that already have all fields.
+    /// - Parameter mode: `.fast` (3 pages, default) or `.full` (provider cap).
+    func generateTagsInBackground(for id: String, force: Bool = false, mode: TaggingMode = .fast) {
+        // Replace any prior task for this paper.
+        taggingTasks[id]?.cancel()
+        taggingTasks[id] = Task { @MainActor [weak self] in
+            await self?.runTagging(for: id, force: force, mode: mode)
+            self?.taggingTasks.removeValue(forKey: id)
+        }
+    }
+
+    /// Cancel an in-flight per-paper tagging operation. No-op if not running.
+    /// This does NOT cancel a paper being tagged as part of `tagAllUntagged` —
+    /// for that, use `cancelBulkTagging()`.
+    func cancelTagging(for id: String) {
+        taggingTasks[id]?.cancel()
+    }
+
+    /// True if the paper still needs LLM work: tags, title, authors, or summary missing/bad.
+    func paperNeedsTagging(_ p: Paper) -> Bool {
+        let noTags = p.auto?.tags?.isEmpty ?? true
+        let badTitle = LLMTagger.isLikelyBadTitle(p.title)
+        let badAuthors = LLMTagger.areLikelyBadAuthors(p.authors)
+        let noSummary = (loadSummary(p) ?? "").isEmpty
+        return noTags || badTitle || badAuthors || noSummary
+    }
+
+    /// Tag every paper that's missing tags / title / authors / summary. Runs
+    /// `bulkConcurrency` LLM calls in parallel. Returns immediately — observe
+    /// `bulkTagProgress` for progress, call `cancelBulkTagging()` to stop.
+    func tagAllUntagged() {
+        guard bulkTagTask == nil else { return }
+        let ids = papers.compactMap { p -> String? in
+            paperNeedsTagging(p) ? p.id : nil
+        }
+        guard !ids.isEmpty else { return }
+        bulkTagProgress = (0, ids.count)
+        let total = ids.count
+
+        bulkTagTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                self.bulkTagTask = nil
+                self.bulkTagProgress = nil
+            }
+
+            var done = 0
+            var iter = ids.makeIterator()
+
+            await withTaskGroup(of: Void.self) { group in
+                let primeCount = min(Self.bulkConcurrency, total)
+                for _ in 0..<primeCount {
+                    if let id = iter.next() {
+                        group.addTask { [weak self] in
+                            await self?.runTagging(for: id, force: false, mode: .fast)
+                        }
+                    }
+                }
+                while await group.next() != nil {
+                    if Task.isCancelled {
+                        group.cancelAll()
+                        break
+                    }
+                    done += 1
+                    self.bulkTagProgress = (done, total)
+                    if let id = iter.next() {
+                        group.addTask { [weak self] in
+                            await self?.runTagging(for: id, force: false, mode: .fast)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Cancel the running bulk-tag operation (if any). Each in-flight Claude
+    /// subprocess gets a SIGTERM via `withTaskCancellationHandler`.
+    func cancelBulkTagging() {
+        bulkTagTask?.cancel()
+    }
+
+    /// Core tagging routine. Async so callers can await it; safe to call from
+    /// a fire-and-forget `Task` too.
+    private func runTagging(for id: String, force: Bool, mode: TaggingMode) async {
+        guard !taggingInFlight.contains(id) else { return }
+        taggingInFlight.insert(id)
+        defer { taggingInFlight.remove(id) }
+
+        let metaURL = config.metadataURL(id)
+        let pdfURL = config.pdfURL(id)
+        guard FileManager.default.fileExists(atPath: metaURL.path) else { return }
+
+        guard let metaData = try? Data(contentsOf: metaURL),
+              let obj = try? JSONSerialization.jsonObject(with: metaData) as? [String: Any] else {
+            return
+        }
+        let existingTitle = (obj["title"] as? String) ?? ""
+        let existingAuthors = (obj["authors"] as? [String]) ?? []
+        let summaryURL = config.summaryURL(id)
+        let hasSummary = FileManager.default.fileExists(atPath: summaryURL.path)
+            && ((try? Data(contentsOf: summaryURL))?.isEmpty == false)
+        if !force {
+            let hasTags: Bool = {
+                guard let auto = obj["auto"] as? [String: Any],
+                      let existing = auto["tags"] as? [String] else { return false }
+                return !existing.isEmpty
+            }()
+            let titleOK = !LLMTagger.isLikelyBadTitle(existingTitle)
+            let authorsOK = !LLMTagger.areLikelyBadAuthors(existingAuthors)
+            if hasTags && titleOK && authorsOK && hasSummary { return }
+        }
+
+        // Provider must be resolved on the main actor (reads model prefs).
+        let (provider, _) = await LLMTagger.detectProvider(
+            llmPreference,
+            claudeModel: claudeModel,
+            ollamaModel: ollamaModel)
+        guard provider.isAvailable else {
+            self.lastTaggerError = "No LLM provider available."
+            return
+        }
+
+        // Heavy work off the main actor: PDF text extraction + LLM call.
+        // Trim text to fit the active provider's context budget AND the chosen mode.
+        let textCap = LLMTagger.maxCharsForProvider(provider)
+        let pageCap: Int
+        switch mode {
+        case .fast: pageCap = 3
+        case .full: pageCap = .max
+        }
+        let result: Result<LLMTagger.ExtractedInfo, Error> = await Task.detached(priority: .utility) {
+            let text = LLMTagger.extractText(from: pdfURL, maxChars: textCap, maxPages: pageCap)
+            do {
+                let info = try await LLMTagger.extractInfo(
+                    currentTitle: existingTitle, text: text, using: provider)
+                return .success(info)
+            } catch {
+                return .failure(error)
+            }
+        }.value
+
+        switch result {
+        case .failure(let error):
+            self.lastTaggerError = error.localizedDescription
+            return
+        case .success(let info):
+            guard !info.isEmpty else { return }
+
+            // Decide whether to overwrite the title: only if the existing one
+            // looks bad AND the LLM's suggestion looks plausible.
+            let titleUpdate: String? = {
+                guard let proposed = info.title,
+                      LLMTagger.isLikelyBadTitle(existingTitle),
+                      LLMTagger.isPlausibleTitle(proposed) else { return nil }
+                return proposed
+            }()
+            // Same gating logic for authors.
+            let authorsUpdate: [String]? = {
+                guard let proposed = info.authors,
+                      LLMTagger.areLikelyBadAuthors(existingAuthors),
+                      LLMTagger.arePlausibleAuthors(proposed) else { return nil }
+                return proposed
+            }()
+
+            do {
+                try Self.writeAutoInfo(info, titleUpdate: titleUpdate, authorsUpdate: authorsUpdate, to: metaURL)
+                if let s = info.summary, !s.isEmpty {
+                    // Only write summary if there isn't already a user-curated one, OR
+                    // if we're being forced. (Bulk run defaults to non-force, which
+                    // means we already passed the hasSummary guard above for any paper
+                    // that gets here — so it's safe to write.)
+                    try s.write(to: summaryURL, atomically: true, encoding: .utf8)
+                }
+            } catch {
+                self.lastTaggerError = "write failed: \(error.localizedDescription)"
+                return
+            }
+            refreshPaperOnDisk(id: id)
+        }
+    }
+
+    nonisolated private static func writeAutoInfo(
+        _ info: LLMTagger.ExtractedInfo,
+        titleUpdate: String?,
+        authorsUpdate: [String]?,
+        to url: URL
+    ) throws {
+        let data = try Data(contentsOf: url)
+        guard var obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw NSError(domain: "PaperManager", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "malformed metadata.json"])
+        }
+        var auto = (obj["auto"] as? [String: Any]) ?? [:]
+        auto["topics"] = info.topics
+        auto["application_areas"] = info.applicationAreas
+        auto["methods"] = info.methods
+        // Keep auto.tags as the flat union — used by sidebar tag list + search fallback.
+        auto["tags"] = info.union
+        obj["auto"] = auto
+        if let newTitle = titleUpdate {
+            obj["title"] = newTitle
+        }
+        if let newAuthors = authorsUpdate {
+            obj["authors"] = newAuthors
+        }
+        let out = try JSONSerialization.data(
+            withJSONObject: obj,
+            options: [.prettyPrinted, .sortedKeys])
+        try out.write(to: url, options: .atomic)
     }
 
     private func writePrefs() {

@@ -6,6 +6,7 @@ struct PaperDetail: View {
 
     @State private var summary: String?
     @State private var loadedID: String?
+    @State private var showDeleteConfirm: Bool = false
 
     var body: some View {
         ScrollView {
@@ -16,15 +17,6 @@ struct PaperDetail: View {
                 Divider()
                 tagsRow
                 metaGrid
-                if let auto = paper.auto {
-                    autoBlock("Methods", items: auto.methods)
-                    autoBlock("Datasets", items: auto.datasets)
-                    autoBlock("Key terms", items: auto.key_terms)
-                    autoBlock("Claims", items: auto.claims, bulleted: true)
-                    if let links = auto.code_links, !links.isEmpty {
-                        codeLinks(links)
-                    }
-                }
                 Divider()
                 summaryBlock
             }
@@ -36,6 +28,10 @@ struct PaperDetail: View {
             summary = nil
             loadedID = nil
             loadSummaryIfNeeded()
+        }
+        .onChange(of: paper.auto) { _, _ in
+            // metadata.json was rewritten (likely by the tagger) — reload summary.md too.
+            summary = store.loadSummary(paper)
         }
     }
 
@@ -101,9 +97,27 @@ struct PaperDetail: View {
                 }
             }
             Spacer()
+            Button(role: .destructive) {
+                showDeleteConfirm = true
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .help("Move this paper to the Trash (⌫)")
         }
         .buttonStyle(.bordered)
         .controlSize(.regular)
+        .confirmationDialog(
+            "Move \"\(paper.title)\" to the Trash?",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Move to Trash", role: .destructive) {
+                store.deletePaper(paper.id)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The PDF and metadata move to the Trash. Reversible until you empty it.")
+        }
     }
 
     private var ratingRow: some View {
@@ -151,36 +165,123 @@ struct PaperDetail: View {
                 get: { prefs.saved },
                 set: { store.setStarred($0, for: paper.id) }
             )) {
-                Label(prefs.saved ? "Starred" : "Star",
-                      systemImage: prefs.saved ? "star.fill" : "star")
+                Label(prefs.saved ? "Saved" : "Save",
+                      systemImage: prefs.saved ? "bookmark.fill" : "bookmark")
             }
             .toggleStyle(.button)
-            .help(prefs.saved ? "Unstar" : "Star")
+            .help(prefs.saved ? "Remove from Saved" : "Save for later")
 
             Spacer()
         }
     }
 
     private var tagsRow: some View {
-        let tags = paper.allTags
-        return Group {
-            if tags.isEmpty {
-                Text("No tags")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            } else {
-                FlowLayout(spacing: 6) {
-                    ForEach(tags, id: \.self) { t in
-                        Text("#\(t)")
+        let userTags = paper.user_tags
+        let topics = filterAutoTags(paper.auto?.topics ?? [], against: userTags)
+        let apps = filterAutoTags(paper.auto?.application_areas ?? [], against: userTags)
+        let methods = filterAutoTags(paper.auto?.methods ?? [], against: userTags)
+        let isTagging = store.taggingInFlight.contains(paper.id)
+        let hasAny = !userTags.isEmpty || !topics.isEmpty || !apps.isEmpty || !methods.isEmpty
+        return VStack(alignment: .leading, spacing: 8) {
+            if !userTags.isEmpty {
+                tagChipRow(label: "Tags", tags: userTags, style: .user)
+            }
+            if !topics.isEmpty {
+                tagChipRow(label: "Topics", tags: topics, style: .auto)
+            }
+            if !apps.isEmpty {
+                tagChipRow(label: "Applications", tags: apps, style: .auto)
+            }
+            if !methods.isEmpty {
+                tagChipRow(label: "Methods", tags: methods, style: .auto)
+            }
+            HStack(spacing: 8) {
+                if !hasAny && !isTagging {
+                    Text("No tags")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                if isTagging {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small)
+                        Text("tagging…")
                             .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(Color.accentColor.opacity(0.15)))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.tertiary)
+                        Button {
+                            store.cancelTagging(for: paper.id)
+                        } label: {
+                            Image(systemName: "stop.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Stop tagging this paper")
                     }
+                } else {
+                    generateTagsButton
+                }
+                Spacer()
+            }
+        }
+    }
+
+    private enum ChipStyle { case user, auto }
+
+    private func tagChipRow(label: String, tags: [String], style: ChipStyle) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(label)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 86, alignment: .trailing)
+                .padding(.top, 3)
+            FlowLayout(spacing: 6) {
+                ForEach(tags, id: \.self) { t in
+                    chip(t, style: style)
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func chip(_ text: String, style: ChipStyle) -> some View {
+        switch style {
+        case .user:
+            Text("#\(text)")
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Color.accentColor.opacity(0.18)))
+                .foregroundStyle(.primary)
+        case .auto:
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .overlay(Capsule().stroke(Color.secondary.opacity(0.35), lineWidth: 0.5))
+        }
+    }
+
+    /// Drop auto-tags that duplicate (case-insensitive) a user tag.
+    private func filterAutoTags(_ tags: [String], against userTags: [String]) -> [String] {
+        let userLower = Set(userTags.map { $0.lowercased() })
+        return tags.filter { !userLower.contains($0.lowercased()) }
+    }
+
+    private var generateTagsButton: some View {
+        let hasAuto = !(paper.auto?.tags?.isEmpty ?? true)
+        return Button {
+            // Manual regenerate reads the whole paper (Claude) / provider cap (Ollama).
+            store.generateTagsInBackground(for: paper.id, force: true, mode: .full)
+        } label: {
+            Label(hasAuto ? "Regenerate" : "Generate tags", systemImage: "sparkles")
+                .font(.caption)
+        }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        .disabled(!store.llmProvider.isAvailable)
+        .help(store.llmProvider.isAvailable
+              ? "Run \(store.llmProvider.label) over the full paper to regenerate tags, title, authors, summary"
+              : "No LLM detected. Install Claude Code or run Ollama with a chat model.")
     }
 
     private var metaGrid: some View {
@@ -238,13 +339,15 @@ struct PaperDetail: View {
         }
     }
 
+    @ViewBuilder
     private var summaryBlock: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Summary").font(.headline)
-            if let text = summary, !text.isEmpty {
+        let isTagging = store.taggingInFlight.contains(paper.id)
+        if let text = summary, !text.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Summary").font(.headline)
                 if let attr = try? AttributedString(
                     markdown: text,
-                    options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+                    options: .init(interpretedSyntax: .full)
                 ) {
                     Text(attr)
                         .textSelection(.enabled)
@@ -255,12 +358,22 @@ struct PaperDetail: View {
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-            } else {
-                Text("No summary yet. Run `paper resummarize \(paper.id)` to generate one.")
-                    .font(.callout)
-                    .foregroundStyle(.tertiary)
+            }
+        } else if isTagging {
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Generating summary…").font(.caption).foregroundStyle(.secondary)
+                Button {
+                    store.cancelTagging(for: paper.id)
+                } label: {
+                    Image(systemName: "stop.circle.fill")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.borderless)
+                .help("Stop tagging this paper")
             }
         }
+        // else: nothing — empty summary block was visual noise (PM call).
     }
 
     private func loadSummaryIfNeeded() {

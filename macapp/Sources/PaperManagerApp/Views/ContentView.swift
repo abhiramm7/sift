@@ -72,6 +72,9 @@ struct ContentView: View {
                 .help("Add a paper (⌘N)")
             }
             ToolbarItem(placement: .primaryAction) {
+                tagAllToolbar
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     Task { await store.rescan() }
                 } label: {
@@ -122,6 +125,50 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private var tagAllToolbar: some View {
+        let count = store.papers.filter { store.paperNeedsTagging($0) }.count
+        let providerAvailable = store.llmProvider.isAvailable
+
+        if let progress = store.bulkTagProgress {
+            HStack(spacing: 6) {
+                ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
+                    .progressViewStyle(.linear)
+                    .frame(width: 80)
+                Text("\(progress.done)/\(progress.total)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Button {
+                    store.cancelBulkTagging()
+                } label: {
+                    Image(systemName: "stop.circle.fill")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.borderless)
+                .help("Stop tagging")
+            }
+            .help("Tagging — \(progress.done) of \(progress.total) done")
+        } else {
+            Button {
+                store.tagAllUntagged()
+            } label: {
+                if count > 0 {
+                    Label("Tag \(count)", systemImage: "sparkles")
+                } else {
+                    Label("Tag all", systemImage: "sparkles")
+                }
+            }
+            .disabled(count == 0 || !providerAvailable)
+            .help(
+                !providerAvailable
+                    ? "No LLM detected. Open Settings to choose Claude or Ollama."
+                : count == 0
+                    ? "All papers have tags and titles."
+                : "Generate tags and fix bad titles for \(count) paper(s) via \(store.llmProvider.label)"
+            )
+        }
+    }
+
     @MainActor
     private func ingestDropped(url: URL) async {
         isImporting = true
@@ -130,6 +177,9 @@ struct ContentView: View {
         do {
             let result = try await ingest.addLocalPDF(at: url)
             await store.rescan()
+            if !result.alreadyExisted {
+                store.generateTagsInBackground(for: result.paperId)
+            }
             showStatus(result.alreadyExisted
                 ? "Already in library: \(url.lastPathComponent)"
                 : "Added \(url.lastPathComponent)")
