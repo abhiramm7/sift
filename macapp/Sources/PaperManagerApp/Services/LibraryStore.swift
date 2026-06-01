@@ -47,8 +47,12 @@ final class LibraryStore: ObservableObject {
     /// Locally-installed Ollama chat models. Refreshed on demand for the Settings picker.
     @Published var availableOllamaModels: [String] = []
 
+    /// Library tag vocabulary — steers LLM tag generation toward existing tags.
+    @Published var tagStore: TagStore
+
     init(config: AppConfig = AppConfig.load()) {
         self.config = config
+        self.tagStore = TagStore(libraryRoot: config.iCloudRoot)
     }
 
     func rescan() async {
@@ -98,6 +102,8 @@ final class LibraryStore: ObservableObject {
         }
         self.prefs = result.prefs
         self.lastScanError = result.error
+        // Refresh tag vocabulary from current paper set.
+        self.tagStore.rebuildFromPapers(self.papers)
     }
 
     func prefs(for id: String) -> PrefsEntry {
@@ -347,11 +353,13 @@ final class LibraryStore: ObservableObject {
         case .fast: pageCap = 3
         case .full: pageCap = .max
         }
+        // Pre-rendered vocab passes to the LLM so it prefers existing tags.
+        let vocabPrompt = tagStore.promptVocabulary(maxTags: 80)
         let result: Result<LLMTagger.ExtractedInfo, Error> = await Task.detached(priority: .utility) {
             let text = LLMTagger.extractText(from: pdfURL, maxChars: textCap, maxPages: pageCap)
             do {
                 let info = try await LLMTagger.extractInfo(
-                    currentTitle: existingTitle, text: text, using: provider)
+                    currentTitle: existingTitle, text: text, vocabulary: vocabPrompt, using: provider)
                 return .success(info)
             } catch {
                 return .failure(error)
@@ -365,25 +373,35 @@ final class LibraryStore: ObservableObject {
         case .success(let info):
             guard !info.isEmpty else { return }
 
+            // Canonicalize LLM-proposed tags against the library vocabulary —
+            // exact match wins, near matches (case / hyphen / plural) snap to
+            // existing, genuinely new tags pass through.
+            var canon = info
+            canon.topics = tagStore.canonicalize(info.topics)
+            canon.applicationAreas = tagStore.canonicalize(info.applicationAreas)
+            canon.methods = tagStore.canonicalize(info.methods)
+
             // Decide whether to overwrite the title: only if the existing one
             // looks bad AND the LLM's suggestion looks plausible.
             let titleUpdate: String? = {
-                guard let proposed = info.title,
+                guard let proposed = canon.title,
                       LLMTagger.isLikelyBadTitle(existingTitle),
                       LLMTagger.isPlausibleTitle(proposed) else { return nil }
                 return proposed
             }()
             // Same gating logic for authors.
             let authorsUpdate: [String]? = {
-                guard let proposed = info.authors,
+                guard let proposed = canon.authors,
                       LLMTagger.areLikelyBadAuthors(existingAuthors),
                       LLMTagger.arePlausibleAuthors(proposed) else { return nil }
                 return proposed
             }()
 
             do {
-                try Self.writeAutoInfo(info, titleUpdate: titleUpdate, authorsUpdate: authorsUpdate, to: metaURL)
-                if let s = info.summary, !s.isEmpty {
+                try Self.writeAutoInfo(canon, titleUpdate: titleUpdate, authorsUpdate: authorsUpdate, to: metaURL)
+                // Fold the new tag set into the vocabulary so the next paper sees it.
+                tagStore.recordUsage(canon.union)
+                if let s = canon.summary, !s.isEmpty {
                     // Only write summary if there isn't already a user-curated one, OR
                     // if we're being forced. (Bulk run defaults to non-force, which
                     // means we already passed the hasSummary guard above for any paper

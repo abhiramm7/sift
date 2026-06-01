@@ -292,8 +292,10 @@ enum LLMTagger {
     // MARK: - Public API
 
     /// Extract title + summary + categorized tags. Throws if no provider is available.
-    static func extractInfo(currentTitle: String, text: String, using provider: Provider) async throws -> ExtractedInfo {
-        let prompt = buildPrompt(currentTitle: currentTitle, text: text)
+    /// `vocabulary` (optional) is a pre-rendered string of existing library tags
+    /// that the LLM is told to prefer over inventing new ones.
+    static func extractInfo(currentTitle: String, text: String, vocabulary: String = "", using provider: Provider) async throws -> ExtractedInfo {
+        let prompt = buildPrompt(currentTitle: currentTitle, text: text, vocabulary: vocabulary)
         let raw: String
         switch provider {
         case .claude(let bin, let model):
@@ -308,7 +310,20 @@ enum LLMTagger {
 
     // MARK: - Prompt
 
-    static func buildPrompt(currentTitle: String, text: String) -> String {
+    static func buildPrompt(currentTitle: String, text: String, vocabulary: String = "") -> String {
+        let vocabSection: String
+        if vocabulary.isEmpty {
+            vocabSection = ""
+        } else {
+            vocabSection = """
+
+
+            EXISTING LIBRARY VOCABULARY
+            Prefer these tags when they fit the paper. Invent a new tag ONLY when no existing tag captures the concept. If you use a new tag, follow the same kebab-case style.
+
+            \(vocabulary)
+            """
+        }
         return """
         You extract structured info from academic documents for a personal library.
 
@@ -326,7 +341,7 @@ enum LLMTagger {
         - The "title", "authors", and "summary" values are normal human-readable strings (NOT kebab-case). Tags are lowercase kebab-case, ASCII letters/digits/hyphens only.
         - No author names, no years, no venue or publisher names in the tags.
         - No generic tags like "research", "study", "analysis", "paper", "method".
-        - If a category does not apply, return an empty array — never omit the key.
+        - If a category does not apply, return an empty array — never omit the key.\(vocabSection)
 
         Existing title hint: \(currentTitle.isEmpty ? "(none)" : currentTitle)
 

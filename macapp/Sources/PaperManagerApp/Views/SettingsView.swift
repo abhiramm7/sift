@@ -105,6 +105,33 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Tag vocabulary") {
+                let top = store.tagStore.topTags(8)
+                let total = store.tagStore.vocabulary.values.filter { $0.count > 0 }.count
+                LabeledContent("Distinct tags") {
+                    Text("\(total)").foregroundStyle(.secondary).monospacedDigit()
+                }
+                if !top.isEmpty {
+                    LabeledContent("Top tags") {
+                        Text(top.map { "\($0.name) (\($0.count))" }.joined(separator: ", "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+                HStack {
+                    Spacer()
+                    Button("Reveal tags.json in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([store.tagStore.fileURL])
+                    }
+                    .disabled(!FileManager.default.fileExists(atPath: store.tagStore.fileURL.path))
+                }
+                Text("Edit descriptions in tags.json to give the LLM extra semantic context. New tags are added automatically; canonicalization prefers existing tags over near-duplicates.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("About") {
                 let version = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "?"
                 Text("PaperManager \(version) — standalone macOS catalog. Stores everything as plain files in the folder above.")
