@@ -1,261 +1,306 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sift — collect, tag, rate, recall your papers</title>
-  <meta name="description" content="Sift is a fast, native macOS app for engineers and researchers to collect, tag, rate, and recall papers, books, and reports. Plain files, no accounts, no telemetry. Free.">
-
-  <!-- Open Graph / social -->
-  <meta property="og:title" content="Sift — collect, tag, rate, recall your papers">
-  <meta property="og:description" content="A fast, native macOS catalog for the papers you read. Plain files on disk, no accounts, no subscription.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://abhiramm7.github.io/sift/">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/sift-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+  <title>Sift — collect, tag, rate, recall your papers</title>
+  <meta name="description" content="Sift is a fast, native macOS app for engineers and researchers to collect, tag, rate, and recall papers, books, and reports. Plain files, no accounts, no telemetry. Free." />
+  <meta name="author" content="Abhiram Mullapudi" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://abhiramm7.github.io/sift/" />
+
+  <meta property="og:title" content="Sift — collect, tag, rate, recall your papers" />
+  <meta property="og:description" content="A fast, native macOS catalog for the papers you read. Plain files on disk, no accounts, no subscription." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://abhiramm7.github.io/sift/" />
 </head>
+
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="site-header">
-    <nav class="nav" aria-label="Primary">
-      <a class="brand" href="#top" aria-label="Sift home">
-        <img class="brand-mark" src="assets/sift-icon.svg" alt="" width="28" height="28" aria-hidden="true">
-        <span class="brand-name">Sift</span>
-      </a>
-      <ul class="nav-links">
-        <li><a href="#why">Why</a></li>
-        <li><a href="#sync">Sync</a></li>
-        <li><a href="#look">A look</a></li>
-        <li><a href="#install">Install</a></li>
-        <li><a href="https://github.com/abhiramm7/sift">GitHub</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <main id="main">
-    <!-- ============ HERO ============ -->
-    <section class="hero" id="top">
-      <div class="hero-inner">
-        <p class="eyebrow">Native macOS app · Free</p>
-        <h1 class="hero-title">Keep track of the papers you read,<br>so you can find them again.</h1>
-        <p class="hero-sub">
-          A fast, native macOS app to
-          <strong>collect&nbsp;→ tag&nbsp;→ rate&nbsp;→ recall</strong>
-          papers, books, and reports. Plain files in a folder you own. No account,
-          no subscription.
-        </p>
-
-        <div class="cta-row">
-          <a class="btn btn-primary" href="https://github.com/abhiramm7/sift/releases/latest">
-            <svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 3a1 1 0 0 1 1 1v9.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4l2.3 2.3V4a1 1 0 0 1 1-1zM5 18a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z"/>
-            </svg>
-            Download for macOS
-          </a>
-          <a class="btn btn-ghost" href="https://github.com/abhiramm7/sift">View on GitHub</a>
-        </div>
-        <p class="hero-fineprint">macOS 14 or later · Apple Silicon &amp; Intel · ~latest release on GitHub</p>
+  <!-- Navigation -->
+  <nav class="nav" aria-label="Primary navigation">
+    <div class="nav-inner">
+      <a href="#top" class="nav-logo" aria-label="Sift home">SIFT</a>
+      <div class="nav-links" id="nav-links">
+        <a class="nav-back" href="https://randomstorms.net/">&#8592; RANDOM // STORMS</a>
+        <a href="#why">Why</a>
+        <a href="#sync">Sync</a>
+        <a href="#look">A Look</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/abhiramm7/sift" target="_blank" rel="noopener">GitHub</a>
       </div>
-    </section>
-
-    <!-- ============ WHY / VALUE CARDS ============ -->
-    <section class="section" id="why" aria-labelledby="why-h">
-      <div class="section-head">
-        <h2 id="why-h">Reference managers got heavy. Sift didn't.</h2>
-        <p class="section-lede">
-          Collect a paper the moment you find it, tag it, rate it, and find it
-          again months later. That's the whole loop.
-        </p>
-      </div>
-
-      <ul class="cards" role="list">
-        <li class="card">
-          <div class="card-icon" aria-hidden="true">📄</div>
-          <h3>It's yours, as plain files</h3>
-          <p>Each paper is a PDF plus a small JSON file. Open, back up, grep, or
-          sync it yourself. No lock-in.</p>
-        </li>
-        <li class="card">
-          <div class="card-icon" aria-hidden="true">⚡</div>
-          <h3>Fast and native</h3>
-          <p>A native Mac app that launches instantly and opens PDFs in Preview.
-          Small and quick.</p>
-        </li>
-        <li class="card">
-          <div class="card-icon" aria-hidden="true">🔒</div>
-          <h3>No account, no tracking</h3>
-          <p>No login, no telemetry. Download it once and it's yours.</p>
-        </li>
-        <li class="card">
-          <div class="card-icon" aria-hidden="true">✨</div>
-          <h3>Smart only if you want</h3>
-          <p>Add Claude Code or Ollama and Sift auto-tags and summarizes locally.
-          Skip them and everything else still works.</p>
-        </li>
-      </ul>
-    </section>
-
-    <!-- ============ SYNC ============ -->
-    <section class="section" id="sync" aria-labelledby="sync-h">
-      <div class="section-head">
-        <h2 id="sync-h">Sync is just iCloud Drive</h2>
-        <p class="section-lede">
-          Keep your library folder in iCloud Drive and macOS syncs it across your
-          Macs. No sync server, no account.
-        </p>
-      </div>
-
-      <div class="sync-layout">
-        <div class="sync-pitch">
-          <h3 class="sync-money-head">The part that saves you money</h3>
-          <p class="sync-money-body">
-            Zotero charges past its 300&nbsp;MB free tier
-            (<strong>$20/$60/$120 a year</strong> for 2/6/unlimited&nbsp;GB), and PDFs
-            pass that quickly. Sift runs no storage at all, so your papers use the
-            iCloud space you already pay for. The free 5&nbsp;GB alone is about
-            <strong>16&times; Zotero's free limit</strong>.
-          </p>
-          <p class="sync-tagline">If you already pay for the cloud, you don't also pay for the reference manager's cloud.</p>
-        </div>
-
-        <aside class="sync-caveats" aria-label="Sync caveats">
-          <h3 class="caveats-head">Honest caveats</h3>
-          <ul class="caveats-list" role="list">
-            <li>
-              <span class="caveat-icon" aria-hidden="true">—</span>
-              <div>
-                <strong>Not instant push.</strong> A few seconds to a few minutes
-                of delay, like any iCloud Drive file.
-              </div>
-            </li>
-            <li>
-              <span class="caveat-icon" aria-hidden="true">—</span>
-              <div>
-                <strong>Apple devices only.</strong> Sift is macOS-only; the files
-                also appear in the iOS Files app.
-              </div>
-            </li>
-            <li>
-              <span class="caveat-icon" aria-hidden="true">—</span>
-              <div>
-                <strong>PDFs are small.</strong> A paper is 1–5&nbsp;MB, so even a
-                big library is a few hundred MB.
-              </div>
-            </li>
-            <li>
-              <span class="caveat-icon" aria-hidden="true">—</span>
-              <div>
-                <strong>Local-only is fine too.</strong> Pick a folder outside
-                iCloud Drive on first launch and it just won't sync.
-              </div>
-            </li>
-          </ul>
-        </aside>
-      </div>
-    </section>
-
-    <!-- ============ A LOOK AT THE APP ============ -->
-    <section class="section section-alt" id="look" aria-labelledby="look-h">
-      <div class="section-head">
-        <h2 id="look-h">A look at the app</h2>
-        <p class="section-lede">Three panes: filter on the left, your library in
-        the middle, the paper's details on the right.</p>
-      </div>
-
-      <figure class="shot-wrap">
-        <img
-          src="assets/sift-screenshot.png"
-          alt="Sift's three-pane window. Left sidebar shows Library filters (All, Unread, Saved, Rated 4+) and a tag list. Centre pane lists papers with titles, authors, years, and star ratings. Right detail pane shows the selected paper's title, five-star rating, and tag chips grouped by Topics, Methods, and Applications, with an Open in Preview button."
-          class="app-shot"
-          loading="lazy"
-          decoding="async"
-          width="1200"
-          height="760">
-        <figcaption class="shot-caption">Sift running on macOS — sidebar, paper list, and detail pane.</figcaption>
-      </figure>
-    </section>
-
-    <!-- ============ INSTALL ============ -->
-    <section class="section" id="install" aria-labelledby="install-h">
-      <div class="section-head">
-        <h2 id="install-h">Install in three steps</h2>
-        <p class="section-lede">This build is signed ad-hoc (not notarized), so
-        Gatekeeper warns on first launch. The right-click trick is needed once.</p>
-      </div>
-
-      <ol class="steps" role="list">
-        <li class="step">
-          <span class="step-num" aria-hidden="true">1</span>
-          <div>
-            <h3>Download the DMG</h3>
-            <p>Grab <code>Sift-&lt;version&gt;.dmg</code> from the
-            <a href="https://github.com/abhiramm7/sift/releases/latest">latest release</a>.</p>
-          </div>
-        </li>
-        <li class="step">
-          <span class="step-num" aria-hidden="true">2</span>
-          <div>
-            <h3>Drag to Applications</h3>
-            <p>Open the DMG and drag <code>Sift.app</code> into your
-            <code>Applications</code> folder.</p>
-          </div>
-        </li>
-        <li class="step">
-          <span class="step-num" aria-hidden="true">3</span>
-          <div>
-            <h3>Right-click → Open</h3>
-            <p>Right-click the app, choose <strong>Open</strong>, then
-            <strong>Open</strong> again to clear the first-launch warning.</p>
-          </div>
-        </li>
-      </ol>
-
-      <div class="install-cta">
-        <a class="btn btn-primary" href="https://github.com/abhiramm7/sift/releases/latest">Download Sift for macOS</a>
-        <p class="hero-fineprint">Free · macOS 14+ · no account required</p>
-      </div>
-    </section>
-
-    <!-- ============ HONEST SCOPE ============ -->
-    <section class="section section-alt" id="scope" aria-labelledby="scope-h">
-      <div class="section-head">
-        <h2 id="scope-h">Deliberately simple</h2>
-        <p class="section-lede">Sift stays focused on cataloging the papers you
-        read. A few deliberate choices keep it fast and out of your way.</p>
-      </div>
-
-      <ul class="scope-list" role="list">
-        <li class="scope-item">
-          <span class="scope-x" aria-hidden="true">›</span>
-          <div><h3>Reading happens in Preview</h3><p>Sift opens PDFs in Preview, where macOS already handles reading and annotations well.</p></div>
-        </li>
-        <li class="scope-item">
-          <span class="scope-x" aria-hidden="true">›</span>
-          <div><h3>A focused catalog</h3><p>No BibTeX, RIS, or DOI export today. It could arrive later as an optional add-on.</p></div>
-        </li>
-        <li class="scope-item">
-          <span class="scope-x" aria-hidden="true">›</span>
-          <div><h3>Sync through iCloud Drive</h3><p>No account and no push service: expect a few seconds of delay, and never a login screen.</p></div>
-        </li>
-      </ul>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <div class="footer-brand">
-        <img class="brand-mark" src="assets/sift-icon.svg" alt="" width="24" height="24" aria-hidden="true">
-        <span>Sift</span>
-      </div>
-      <p class="footer-tag">Built with Swift · No accounts · No telemetry · Plain files you own.</p>
-      <nav class="footer-links" aria-label="Footer">
-        <a href="https://github.com/abhiramm7/sift">Source</a>
-        <a href="https://github.com/abhiramm7/sift/releases/latest">Releases</a>
-        <a href="https://github.com/abhiramm7/sift#readme">Docs</a>
-      </nav>
+      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
+        <span></span><span></span><span></span>
+      </button>
     </div>
-  </footer>
+  </nav>
+
+  <div class="page-container">
+
+    <main id="main">
+
+      <!-- ============ HERO ============ -->
+      <section id="top" class="section hero-section">
+        <div class="hero-content">
+          <p class="eyebrow">Native macOS app &middot; Free</p>
+          <h1 class="hero-title">Keep track of the papers<br>you read, so you can<br>find them again.</h1>
+          <p class="hero-sub">
+            A fast, native macOS app to
+            <strong>collect&nbsp;&rarr; tag&nbsp;&rarr; rate&nbsp;&rarr; recall</strong>
+            papers, books, and reports. Plain files in a folder you own.
+            No account, no subscription.
+          </p>
+          <div class="hero-cta-row">
+            <a class="link-pill link-pill-primary" href="https://github.com/abhiramm7/sift/releases/latest" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12 3a1 1 0 0 1 1 1v9.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4l2.3 2.3V4a1 1 0 0 1 1-1zM5 18a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z"/></svg>
+              Download for macOS
+            </a>
+            <a class="link-pill" href="https://github.com/abhiramm7/sift" target="_blank" rel="noopener">View on GitHub</a>
+          </div>
+          <p class="hero-fineprint">macOS 14 or later &middot; Apple Silicon &amp; Intel &middot; Free</p>
+        </div>
+      </section>
+
+      <!-- ============ WHY / VALUE CARDS ============ -->
+      <section id="why" class="section" aria-labelledby="why-h">
+        <h2 id="why-h" class="section-title">Why Sift</h2>
+        <p class="section-lede">Reference managers got heavy. Sift didn't. Collect a paper the moment you find it, tag it, rate it, and find it again months later. That's the whole loop.</p>
+
+        <ul class="cards" role="list">
+          <li class="card">
+            <div class="card-glyph" aria-hidden="true">01</div>
+            <h3>It's yours, as plain files</h3>
+            <p>Each paper is a PDF plus a small JSON file. Open, back up, grep, or sync it yourself. No lock-in.</p>
+          </li>
+          <li class="card">
+            <div class="card-glyph" aria-hidden="true">02</div>
+            <h3>Fast and native</h3>
+            <p>A native Mac app that launches instantly and opens PDFs in Preview. Small and quick.</p>
+          </li>
+          <li class="card">
+            <div class="card-glyph" aria-hidden="true">03</div>
+            <h3>No account, no tracking</h3>
+            <p>No login, no telemetry. Download it once and it's yours.</p>
+          </li>
+          <li class="card">
+            <div class="card-glyph" aria-hidden="true">04</div>
+            <h3>Smart only if you want</h3>
+            <p>Optional: with a local AI tool like Ollama or Claude Code installed, Sift auto-tags and summarizes papers on your machine. Without one, everything else works exactly the same.</p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ============ SYNC ============ -->
+      <section id="sync" class="section" aria-labelledby="sync-h">
+        <h2 id="sync-h" class="section-title">Sync &amp; Cost</h2>
+        <p class="section-lede">Sift writes plain files to any folder you choose. Put that folder in iCloud Drive, Google Drive, Dropbox, or OneDrive and your desktop sync client handles the rest. No sync server, no account.</p>
+
+        <div class="sync-layout">
+          <div class="sync-pitch">
+            <h3 class="sync-money-head">The part that saves you money</h3>
+            <p class="sync-money-body">
+              Zotero charges past its 300&nbsp;MB free tier
+              (<strong>$20/$60/$120 a year</strong> for 2/6/unlimited&nbsp;GB), and PDFs
+              pass that quickly. Sift runs no storage at all, so your papers use the
+              cloud storage you already pay for. iCloud's free 5&nbsp;GB alone is about
+              <strong>16&times; Zotero's free limit</strong>.
+            </p>
+            <p class="sync-tagline">If you already pay for the cloud, you don't also pay for the reference manager's cloud.</p>
+          </div>
+
+          <aside class="sync-caveats" aria-label="Sync caveats">
+            <h3 class="caveats-head">Honest caveats</h3>
+            <ul class="caveats-list" role="list">
+              <li>
+                <span class="caveat-dash" aria-hidden="true">&mdash;</span>
+                <div>
+                  <strong>Not instant push.</strong> A few seconds to a few minutes
+                  of delay, like any synced folder on your desktop.
+                </div>
+              </li>
+              <li>
+                <span class="caveat-dash" aria-hidden="true">&mdash;</span>
+                <div>
+                  <strong>One machine at a time.</strong> Don't edit the same library
+                  from two machines simultaneously &mdash; use one Mac at a time to
+                  avoid sync conflicts.
+                </div>
+              </li>
+              <li>
+                <span class="caveat-dash" aria-hidden="true">&mdash;</span>
+                <div>
+                  <strong>It uses your quota.</strong> Papers are small, though:
+                  1&ndash;5&nbsp;MB each, so even a big library is only a few hundred&nbsp;MB.
+                </div>
+              </li>
+              <li>
+                <span class="caveat-dash" aria-hidden="true">&mdash;</span>
+                <div>
+                  <strong>Local-only is fine too.</strong> Pick a folder outside
+                  any sync client on first launch and it just won't sync.
+                </div>
+              </li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============ A LOOK AT THE APP ============ -->
+      <section id="look" class="section" aria-labelledby="look-h">
+        <h2 id="look-h" class="section-title">A Look at the App</h2>
+        <p class="section-lede">Three panes: filter on the left, your library in the middle, the paper's details on the right.</p>
+
+        <figure class="shot-wrap">
+          <img
+            src="assets/sift-screenshot.png"
+            alt="Sift's three-pane window. Left sidebar shows Library filters (All, Unread, Saved, Rated 4+) and a tag list. Centre pane lists papers with titles, authors, years, and star ratings. Right detail pane shows the selected paper's title, five-star rating, and tag chips grouped by Topics, Methods, and Applications, with an Open in Preview button."
+            class="app-shot"
+            loading="lazy"
+            decoding="async"
+            width="1200"
+            height="760">
+          <figcaption class="shot-caption">Sift running on macOS &mdash; sidebar, paper list, and detail pane.</figcaption>
+        </figure>
+      </section>
+
+      <!-- ============ INSTALL ============ -->
+      <section id="install" class="section" aria-labelledby="install-h">
+        <h2 id="install-h" class="section-title">Install in Three Steps</h2>
+        <p class="section-lede">This build is signed ad-hoc (not notarized), so Gatekeeper warns on first launch. The right-click trick is needed once.</p>
+
+        <ol class="steps" role="list">
+          <li class="step">
+            <span class="step-num" aria-hidden="true">1</span>
+            <div>
+              <h3>Download the DMG</h3>
+              <p>Grab <code>Sift-&lt;version&gt;.dmg</code> from the
+              <a href="https://github.com/abhiramm7/sift/releases/latest" target="_blank" rel="noopener">latest release</a>.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-hidden="true">2</span>
+            <div>
+              <h3>Drag to Applications</h3>
+              <p>Open the DMG and drag <code>Sift.app</code> into your <code>Applications</code> folder.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-hidden="true">3</span>
+            <div>
+              <h3>Right-click &rarr; Open</h3>
+              <p>Right-click the app, choose <strong>Open</strong>, then <strong>Open</strong> again to clear the first-launch warning.</p>
+            </div>
+          </li>
+        </ol>
+
+        <div class="install-cta">
+          <a class="link-pill link-pill-primary" href="https://github.com/abhiramm7/sift/releases/latest" target="_blank" rel="noopener">Download Sift for macOS</a>
+          <p class="hero-fineprint">Free &middot; macOS 14+ &middot; no account required</p>
+        </div>
+      </section>
+
+      <!-- ============ DELIBERATELY SIMPLE ============ -->
+      <section id="scope" class="section" aria-labelledby="scope-h">
+        <h2 id="scope-h" class="section-title">Deliberately Simple</h2>
+        <p class="section-lede">Sift stays focused on cataloging the papers you read. A few deliberate choices keep it fast and out of your way.</p>
+
+        <ul class="scope-list" role="list">
+          <li class="scope-item">
+            <span class="scope-marker" aria-hidden="true">&mdash;</span>
+            <div>
+              <h3>Reading happens in Preview</h3>
+              <p>Sift opens PDFs in Preview, where macOS already handles reading and annotations well.</p>
+            </div>
+          </li>
+          <li class="scope-item">
+            <span class="scope-marker" aria-hidden="true">&mdash;</span>
+            <div>
+              <h3>A focused catalog</h3>
+              <p>No BibTeX, RIS, or DOI export today. It could arrive later as an optional add-on.</p>
+            </div>
+          </li>
+          <li class="scope-item">
+            <span class="scope-marker" aria-hidden="true">&mdash;</span>
+            <div>
+              <h3>Sync through your cloud folder</h3>
+              <p>No account and no push service: expect a few seconds of delay, and never a login screen. iCloud Drive, Google Drive, Dropbox, or OneDrive &mdash; whatever you already use.</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-inner">
+        <p>
+          <a href="https://github.com/abhiramm7/sift" target="_blank" rel="noopener">Source</a>
+          &nbsp;&middot;&nbsp;
+          <a href="https://github.com/abhiramm7/sift/releases/latest" target="_blank" rel="noopener">Releases</a>
+          &nbsp;&middot;&nbsp;
+          <a href="https://randomstorms.net/" target="_blank" rel="noopener">randomstorms.net</a>
+        </p>
+        <p>Built with Swift &middot; No accounts &middot; No telemetry &middot; Plain files you own.</p>
+      </div>
+    </footer>
+
+  </div><!-- /page-container -->
+
+  <script>
+    // Mobile nav toggle
+    const toggle = document.querySelector('.nav-toggle');
+    const navLinks = document.getElementById('nav-links');
+    if (toggle && navLinks) {
+      toggle.addEventListener('click', () => {
+        navLinks.classList.toggle('open');
+        toggle.classList.toggle('open');
+        const isOpen = navLinks.classList.contains('open');
+        toggle.setAttribute('aria-expanded', isOpen);
+      });
+      navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          navLinks.classList.remove('open');
+          toggle.classList.remove('open');
+          toggle.setAttribute('aria-expanded', false);
+        });
+      });
+    }
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Snappy fade-in on scroll
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!prefersReduced) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.08 });
+
+      document.querySelectorAll('.section').forEach(section => {
+        section.classList.add('fade-in');
+        observer.observe(section);
+      });
+    }
+  </script>
 </body>
+
 </html>

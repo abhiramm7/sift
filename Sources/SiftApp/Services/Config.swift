@@ -49,11 +49,17 @@ struct AppConfig {
         FileManager.default.ubiquityIdentityToken != nil
     }
 
-    /// True iff a path lives inside the iCloud Drive container — what iCloud
-    /// actually syncs across devices.
-    static func isInICloudDrive(_ url: URL) -> Bool {
-        let needle = "/Library/Mobile Documents/com~apple~CloudDocs/"
-        return url.path.contains(needle)
+    /// Best-effort detection of a consumer cloud-sync folder by path. Sift just
+    /// writes plain files, so anything a desktop sync client mirrors (iCloud
+    /// Drive, Google Drive, Dropbox, OneDrive) will sync the library. Returns a
+    /// display name, or nil for an ordinary local folder.
+    static func cloudProviderName(for url: URL) -> String? {
+        let p = url.path
+        if p.contains("/Library/Mobile Documents/com~apple~CloudDocs/") { return "iCloud Drive" }
+        if p.contains("/Library/CloudStorage/GoogleDrive") || p.contains("/Google Drive") { return "Google Drive" }
+        if p.contains("/Library/CloudStorage/Dropbox") || p.contains("/Dropbox") { return "Dropbox" }
+        if p.contains("/Library/CloudStorage/OneDrive") || p.contains("/OneDrive") { return "OneDrive" }
+        return nil
     }
 
     /// Create the standard subdirectory layout. Safe to call repeatedly.

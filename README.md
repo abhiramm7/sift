@@ -24,13 +24,14 @@ months later. It stays fast, native, and out of your way.
 
 ## Sync & cost
 
-Sift has no sync server. It writes plain files, and if the library folder lives
-in iCloud Drive (the default), macOS syncs it across your Macs. Your papers use
-the iCloud storage you already pay for instead of a separate fee: Zotero charges
-past its 300 MB free tier ($20/$60/$120 a year for 2/6/unlimited GB), while
-iCloud's free 5 GB alone is about 16× that. Caveats: iCloud Drive sync has a
-few-second delay (not push), works only across Apple devices (Sift is macOS-only),
-and a local-only folder works too.
+Sift has no sync server. It just writes plain files to a folder you choose, so
+whatever already syncs that folder syncs your library — iCloud Drive (the
+default), Google Drive, Dropbox, or OneDrive. Your papers ride on cloud storage
+you already pay for instead of a separate fee: Zotero charges past its 300 MB
+free tier ($20/$60/$120 a year for 2/6/unlimited GB), while iCloud's free 5 GB
+alone is about 16× that. Caveats: file sync has a few-second delay (not push), and
+to avoid conflicts don't edit the same library from two Macs at once. A
+local-only folder works too.
 
 ## Install
 

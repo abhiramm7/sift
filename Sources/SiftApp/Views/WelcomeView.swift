@@ -58,10 +58,10 @@ struct WelcomeView: View {
     private var folderSummary: some View {
         let expanded = (chosenPath as NSString).expandingTildeInPath
         let url = URL(fileURLWithPath: expanded)
-        let inICloud = AppConfig.isInICloudDrive(url)
+        let provider = AppConfig.cloudProviderName(for: url)
         let friendly: String = {
-            if inICloud {
-                return "iCloud Drive · " + url.lastPathComponent
+            if let provider {
+                return provider + " · " + url.lastPathComponent
             }
             // Show "~/Foo/Bar/Baz" style
             let home = NSHomeDirectory()
@@ -71,7 +71,7 @@ struct WelcomeView: View {
             return expanded
         }()
         HStack(spacing: 10) {
-            Image(systemName: inICloud ? "icloud" : "folder")
+            Image(systemName: provider == nil ? "folder" : (provider == "iCloud Drive" ? "icloud" : "arrow.triangle.2.circlepath"))
                 .foregroundStyle(.secondary)
                 .font(.title3)
             VStack(alignment: .leading, spacing: 2) {
@@ -94,20 +94,26 @@ struct WelcomeView: View {
     private var iCloudHint: some View {
         let expanded = (chosenPath as NSString).expandingTildeInPath
         let url = URL(fileURLWithPath: expanded)
-        let inICloud = AppConfig.isInICloudDrive(url)
+        let provider = AppConfig.cloudProviderName(for: url)
         let iCloudOK = AppConfig.iCloudAvailable
 
         VStack(alignment: .leading, spacing: 4) {
-            if !iCloudOK {
-                Label("iCloud Drive is not enabled on this Mac. The app will still work, but your library won't sync to other devices.", systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            } else if inICloud {
-                Label("This folder is inside iCloud Drive — it'll sync to your other Apple devices automatically.", systemImage: "icloud")
+            if provider == "iCloud Drive" {
+                if iCloudOK {
+                    Label("This folder is in iCloud Drive, so it syncs to your other Apple devices automatically.", systemImage: "icloud")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Label("This folder is in iCloud Drive, but iCloud isn't turned on for this Mac yet, so it won't sync until you enable it. The app still works.", systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            } else if let provider {
+                Label("This folder is in \(provider), so your library will sync wherever \(provider) syncs.", systemImage: "arrow.triangle.2.circlepath")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                Label("This folder is outside iCloud Drive. The library will be local-only.", systemImage: "externaldrive")
+                Label("This folder isn't in a synced cloud folder, so the library stays on this Mac. Put it in iCloud Drive, Google Drive, Dropbox, or similar to sync across devices.", systemImage: "externaldrive")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
