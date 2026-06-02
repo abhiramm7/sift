@@ -1,12 +1,19 @@
-# Sift
+<div align="center">
 
-Fast, native macOS app to **collect → tag → rate → recall** papers, books, and
-reports. No account, no subscription, no clutter. Your library is plain files in
-a folder you choose; keep it in iCloud Drive and it syncs across your Macs. PDFs
-open in Preview.
+<img src="docs/assets/sift-icon.png" width="96" height="96" alt="Sift app icon">
 
-**[Download](https://github.com/abhiramm7/sift/releases)** ·
-**[Project page](https://abhiramm7.github.io/sift/)**
+<h1>Sift</h1>
+
+<p><b>A fast, native macOS catalog for the papers you read — collect, tag, rate, recall.</b></p>
+
+<p>
+<a href="https://github.com/abhiramm7/sift/releases"><b>Download</b></a> ·
+<a href="https://abhiramm7.github.io/sift/"><b>Project page</b></a>
+</p>
+
+<img src="docs/assets/sift-screenshot.png" width="760" alt="Sift's three-pane window: a filter sidebar, a paper list with star ratings, and a detail pane with tag chips grouped by topics, methods, and applications.">
+
+</div>
 
 ## Why
 
