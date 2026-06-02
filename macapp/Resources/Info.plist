@@ -5,17 +5,17 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>PaperManagerApp</string>
+    <string>SiftApp</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>net.randomstorms.PaperManager</string>
+    <string>net.randomstorms.Sift</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>PaperManager</string>
+    <string>Sift</string>
     <key>CFBundleDisplayName</key>
-    <string>PaperManager</string>
+    <string>Sift</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

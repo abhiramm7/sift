@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build PaperManager.app from the SPM target.
+# Build Sift.app from the SPM target.
 #
 # Usage:
-#   ./build.sh            # release build, writes ./PaperManager.app
+#   ./build.sh            # release build, writes ./Sift.app
 #   ./build.sh debug      # debug build (faster compile, slower runtime)
 #   ./build.sh run        # build release then launch
-#   ./build.sh dmg        # build release + package as PaperManager-<ver>.dmg
+#   ./build.sh dmg        # build release + package as Sift-<ver>.dmg
 #
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -21,8 +21,8 @@ case "$ACTION" in
 esac
 
 CONFIG_FLAG="-c $MODE"
-APP_NAME="PaperManager"
-EXE_NAME="PaperManagerApp"
+APP_NAME="Sift"
+EXE_NAME="SiftApp"
 APP_DIR="$APP_NAME.app"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist 2>/dev/null || echo 0.1.0)"
 
@@ -62,27 +62,26 @@ if [[ "$MAKE_DMG" -eq 1 ]]; then
     ln -s /Applications "$STAGING/Applications"
 
     cat > "$STAGING/README.txt" <<EOF
-PaperManager $VERSION
+Sift $VERSION
 
 To install:
-  1. Drag PaperManager.app into the Applications folder (shown next to it).
+  1. Drag Sift.app into the Applications folder (shown next to it).
   2. The first time you launch it, macOS Gatekeeper will block it because
      this build is signed ad-hoc (not notarized by Apple).
      To open it anyway:
-        Right-click PaperManager.app → Open → Open
+        Right-click Sift.app → Open → Open
      You'll only need to do this once.
 
 What it does:
-  - Catalogs research papers and books from PDFs you drop in.
+  - Sifts through research papers and books — collect, tag, rate, recall.
   - Stores everything as plain files in a folder you choose (recommended:
     inside iCloud Drive, so it syncs across your devices).
   - Opens PDFs in Preview (the system default app).
 
 First-run setup:
-  On first launch you'll be asked where to keep your library. The default is:
-    ~/Library/Mobile Documents/com~apple~CloudDocs/PaperManager/
-  which is inside iCloud Drive and will sync to your other Apple devices.
-  You can choose any other folder too — it just won't sync.
+  On first launch you'll be asked where to keep your library. The default is
+  inside iCloud Drive so it syncs to your other Apple devices. You can choose
+  any other folder too — it just won't sync.
 EOF
 
     rm -f "$DMG_NAME"

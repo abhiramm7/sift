@@ -2,15 +2,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "PaperManagerApp",
+    name: "SiftApp",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "PaperManagerApp", targets: ["PaperManagerApp"]),
+        .executable(name: "SiftApp", targets: ["SiftApp"]),
     ],
     targets: [
         .executableTarget(
-            name: "PaperManagerApp",
-            path: "Sources/PaperManagerApp"
+            name: "SiftApp",
+            path: "Sources/SiftApp"
         ),
     ]
 )

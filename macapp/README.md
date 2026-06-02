@@ -1,17 +1,18 @@
-# PaperManager (macOS)
+# Sift (macOS)
 
-A lightweight catalog for research papers and books. Drop in PDFs, tag them,
-rate them, mark them read. Everything is stored as plain files in a folder of
-your choice — keep it in iCloud Drive and your library syncs across devices.
+A fast, native alternative to clunky paper-management tools (Zotero, Mendeley,
+Papers/Readcube) — built for engineers and researchers who want to **collect,
+tag, rate, and recall** the papers they read. Drop in PDFs, sift through them.
+Everything is stored as plain files in a folder of your choice — keep it in
+iCloud Drive and your library syncs across devices.
 
-PaperManager opens PDFs in Preview (your system default), so it stays small
-and out of your way. No login, no cloud service, no embedded reader.
+Sift opens PDFs in Preview (your system default), so it stays small and out of
+your way. No login, no cloud service, no embedded reader, no recurring fee.
 
 ## Install
 
-1. Download `PaperManager-<version>.dmg` (built from this repo, or shared
-   with you).
-2. Open the DMG and drag `PaperManager.app` into `Applications`.
+1. Download `Sift-<version>.dmg` (built from this repo, or shared with you).
+2. Open the DMG and drag `Sift.app` into `Applications`.
 3. Right-click the app → **Open** → **Open**.
    (This build is signed ad-hoc, not notarized, so Gatekeeper warns on first
    launch. You only need to do the right-click trick once.)
@@ -25,11 +26,15 @@ inside iCloud Drive:
 ~/Library/Mobile Documents/com~apple~CloudDocs/PaperManager/
 ```
 
+(The default folder is still named `PaperManager/` — that's the on-disk
+folder name, not the app name. Sift will happily use any folder you point
+it at; the name on disk doesn't matter.)
+
 That folder will sync to every Apple device signed into the same iCloud
 account. You can also point at any other folder (it just won't sync).
 
-If you already have a `PaperManager/` folder from another machine, point the
-app at it — your existing papers, tags, ratings, and read status all show up.
+If you already have a library folder from another machine, point the app at
+it — your existing papers, tags, ratings, and read status all show up.
 
 ## Adding papers
 
@@ -102,9 +107,8 @@ Auto-on-ingest reads the first 3 pages of each PDF (fast, cheap). The
     └── prefs.json           ratings, read flags, starred flags
 ```
 
-The file shape matches the Python `paper` CLI (a separate, optional tool that
-adds LLM-generated summaries and embeddings). The two coexist — you can run
-this app alone, or layer the CLI on top for power features.
+The format is plain JSON + files on disk, so it stays easy to inspect, back up,
+and script against.
 
 ## Build from source
 
@@ -112,7 +116,7 @@ this app alone, or layer the CLI on top for power features.
 cd macapp
 ./build.sh run          # builds release + opens the app
 ./build.sh debug        # faster compile, slower runtime, useful for editing
-./build.sh dmg          # produces PaperManager-<version>.dmg next to build.sh
+./build.sh dmg          # produces Sift-<version>.dmg next to build.sh
 ```
 
 Requires Xcode (Swift 5.9+, macOS 14 SDK) installed. Pure SPM — no Xcode
@@ -130,5 +134,5 @@ project files.
 | What | Where |
 |---|---|
 | Your library | wherever you pointed it on first launch |
-| App preferences | `~/Library/Preferences/net.randomstorms.PaperManager.plist` |
-| The app | `/Applications/PaperManager.app` |
+| App preferences | `~/Library/Preferences/net.randomstorms.Sift.plist` |
+| The app | `/Applications/Sift.app` |
