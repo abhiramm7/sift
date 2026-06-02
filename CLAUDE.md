@@ -1,6 +1,6 @@
 # Sift — agent notes
 
-Personal research library as a **native macOS app: Sift** (`macapp/`) — a
+Personal research library as a **native macOS app: Sift** — a
 SwiftUI catalog: ingest, tag (LLM-assisted via Claude CLI or Ollama, optional),
 rate, read/unread, save/bookmark, search, delete. **Positioning:** fast native
 alternative to clunky paper-management tools (Zotero, Mendeley, Papers/Readcube).
@@ -18,17 +18,22 @@ NOT a citation manager.
 
 ## Layout
 
+Sift is the whole repo now — the Swift package lives at the root (it used to be
+nested under `macapp/`; flattened on 2026-06-02 after the Python CLI was
+removed).
+
 ```
-macapp/                   Sift — SwiftUI app, SPM-built (Package.swift)
-  Sources/SiftApp/
-    SiftApp.swift         @main entry
-    Models/               Paper, Prefs (Codable mirrors of metadata.json/prefs.json)
-    Views/                RootView, Sidebar, PaperList, PaperDetail, AddSheet,
+Package.swift             SPM manifest (executable target SiftApp, path Sources/SiftApp)
+Sources/SiftApp/
+  SiftApp.swift           @main entry
+  Models/                 Paper, Prefs (Codable mirrors of metadata.json/prefs.json)
+  Views/                  RootView, Sidebar, PaperList, PaperDetail, AddSheet,
                           SettingsView, WelcomeView, ConsolidateTagsSheet
-    Services/             LibraryStore, IngestService, Config, LLMTagger, TagStore
-  build.sh                ./build.sh {release|debug|run|dmg} — produces Sift.app / Sift-VER.dmg
-  Resources/Info.plist    Bundle metadata, version. CFBundleIdentifier net.randomstorms.Sift
-  README.md               Full user-facing install / usage guide
+  Services/               LibraryStore, IngestService, Config, LLMTagger, TagStore
+build.sh                  ./build.sh {release|debug|run|dmg} — produces Sift.app / Sift-VER.dmg
+Resources/Info.plist      Bundle metadata, version. CFBundleIdentifier net.randomstorms.Sift
+docs/                     Landing/distribution page served via GitHub Pages
+README.md                 Full user-facing install / usage guide
 ```
 
 ## Data lives in iCloud, not the repo
@@ -68,8 +73,8 @@ database to migrate.
 ## Common dev workflows
 
 ```bash
-cd macapp && ./build.sh run              # build + launch Sift
-cd macapp && ./build.sh dmg              # ship a release DMG (Sift-VER.dmg)
+./build.sh run                           # build + launch Sift
+./build.sh dmg                           # ship a release DMG (Sift-VER.dmg)
 ```
 
 There is **no test suite**. Validate changes by ingesting a real PDF and
@@ -84,3 +89,7 @@ exercising the affected surface.
 - `diva-engineer` — UI-detail critic, Steve-Jobs style
 - `general-user` — first-time-user friction reviewer
 - `paper-scout` — finds new papers via web grounded in tags.json
+- `qa-reviewer` — pre-commit QA gate: builds, scans the diff for stray
+  artifacts / leftovers / broken refs before anything is committed
+- `web-designer` — builds & maintains the `docs/` GitHub Pages distribution
+  site (writes HTML/CSS)

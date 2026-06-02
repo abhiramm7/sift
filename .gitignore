@@ -1,10 +1,10 @@
 .DS_Store
 
-# macapp build artifacts
-macapp/.build/
-macapp/.swiftpm/
-macapp/Sift.app/
-macapp/*.dmg
+# Swift build artifacts
+.build/
+.swiftpm/
+Sift.app/
+*.dmg
 
 # Claude Code per-user config (allowlist tweaks, machine-specific permissions)
 .claude/settings.local.json

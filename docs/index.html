@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sift — collect, tag, rate, recall your papers</title>
+  <meta name="description" content="Sift is a fast, native macOS app for engineers and researchers to collect, tag, rate, and recall papers, books, and reports. Plain files, no accounts, no telemetry. Free.">
+
+  <!-- Open Graph / social -->
+  <meta property="og:title" content="Sift — collect, tag, rate, recall your papers">
+  <meta property="og:description" content="A fast, native macOS catalog for the papers you read. Plain files on disk, no accounts, no subscription.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://abhiramm7.github.io/sift/">
+
+  <link rel="icon" href="assets/sift-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="#top" aria-label="Sift home">
+        <img class="brand-mark" src="assets/sift-icon.svg" alt="" width="28" height="28" aria-hidden="true">
+        <span class="brand-name">Sift</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#why">Why</a></li>
+        <li><a href="#look">A look</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="https://github.com/abhiramm7/sift">GitHub</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main">
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="top">
+      <div class="hero-inner">
+        <p class="eyebrow">Native macOS app · Free</p>
+        <h1 class="hero-title">Keep track of the papers you read,<br>so you can find them again.</h1>
+        <p class="hero-sub">
+          Sift is a fast, native macOS app for engineers and researchers to
+          <strong>collect&nbsp;→ tag&nbsp;→ rate&nbsp;→ recall</strong>
+          papers, books, and reports. Everything lives as plain files in a folder
+          you control. No accounts, no server, no subscription.
+        </p>
+
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/abhiramm7/sift/releases/latest">
+            <svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 3a1 1 0 0 1 1 1v9.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4l2.3 2.3V4a1 1 0 0 1 1-1zM5 18a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z"/>
+            </svg>
+            Download for macOS
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/abhiramm7/sift">View on GitHub</a>
+        </div>
+        <p class="hero-fineprint">macOS 14 or later · Apple Silicon &amp; Intel · ~latest release on GitHub</p>
+      </div>
+    </section>
+
+    <!-- ============ WHY / VALUE CARDS ============ -->
+    <section class="section" id="why" aria-labelledby="why-h">
+      <div class="section-head">
+        <h2 id="why-h">Reference managers got heavy. Sift didn't.</h2>
+        <p class="section-lede">
+          Most working researchers don't need a citation engine day to day. They
+          need to collect a paper the moment they find it, tag it so it's
+          findable, rate it so the good stuff floats up, and recall it months
+          later. That's the whole loop.
+        </p>
+      </div>
+
+      <ul class="cards" role="list">
+        <li class="card">
+          <div class="card-icon" aria-hidden="true">📄</div>
+          <h3>It's yours, as plain files</h3>
+          <p>Every paper is a PDF plus a small JSON file in a folder you pick. No
+          proprietary database, no export ritual, no lock-in. Open it in Finder,
+          back it up, grep it, sync it through iCloud — it's just files.</p>
+        </li>
+        <li class="card">
+          <div class="card-icon" aria-hidden="true">⚡</div>
+          <h3>Fast and native</h3>
+          <p>A SwiftUI Mac app that launches instantly and stays out of the way.
+          It opens PDFs in Preview instead of shipping a worse reader, so it
+          stays small and quick.</p>
+        </li>
+        <li class="card">
+          <div class="card-icon" aria-hidden="true">🔒</div>
+          <h3>Respects your attention</h3>
+          <p>No login, no cloud account, no upsell, no telemetry. One-time
+          download, then it's a tool — not a service that watches you.</p>
+        </li>
+        <li class="card">
+          <div class="card-icon" aria-hidden="true">✨</div>
+          <h3>Optional-smart</h3>
+          <p>If you have Claude Code or Ollama installed, Sift can auto-tag and
+          summarize locally — but it works completely without them. The
+          intelligence is a convenience, never a dependency.</p>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============ A LOOK AT THE APP ============ -->
+    <!--
+      NOTE: This is a pure CSS/HTML mock of Sift's three-pane UI, used because
+      no real screenshot asset exists yet. To replace it with a real screenshot:
+        1. Drop a PNG (ideally @2x, ~1600px wide) at docs/assets/sift-screenshot.png
+           with a matching alt description.
+        2. Replace the entire <div class="mock"> ... </div> block below with:
+           <img src="assets/sift-screenshot.png"
+                alt="Sift's three-pane window: filter sidebar, paper list, and a detail pane with tag chips and a star rating."
+                class="app-shot" width="1200" height="760" loading="lazy">
+    -->
+    <section class="section section-alt" id="look" aria-labelledby="look-h">
+      <div class="section-head">
+        <h2 id="look-h">A look at the app</h2>
+        <p class="section-lede">Three panes: filter on the left, your library in
+        the middle, the paper's details on the right.</p>
+      </div>
+
+      <figure class="mock-wrap">
+        <div class="mock" role="img" aria-label="Mock of Sift's three-pane window. Left: filters for All, Unread, Saved, Rated 4+, and tags. Middle: a list of papers with titles, authors, and years. Right: a detail pane showing a paper's title, a five-star rating, and tag chips grouped by Topics, Methods, and Applications.">
+          <!-- Title bar -->
+          <div class="mock-titlebar" aria-hidden="true">
+            <span class="traffic red"></span>
+            <span class="traffic yellow"></span>
+            <span class="traffic green"></span>
+            <span class="mock-searchbar">Search title, authors, tags…</span>
+          </div>
+
+          <div class="mock-body" aria-hidden="true">
+            <!-- Sidebar -->
+            <aside class="mock-sidebar">
+              <p class="mock-grouplabel">Library</p>
+              <ul>
+                <li class="active">All</li>
+                <li>Unread</li>
+                <li>Saved</li>
+                <li>Rated 4+</li>
+              </ul>
+              <p class="mock-grouplabel">Tags</p>
+              <ul>
+                <li>transformers</li>
+                <li>retrieval</li>
+                <li>systems</li>
+                <li>evaluation</li>
+              </ul>
+            </aside>
+
+            <!-- Paper list -->
+            <section class="mock-list">
+              <div class="mock-row active">
+                <div class="mock-row-title">Attention Is All You Need</div>
+                <div class="mock-row-meta">Vaswani et al. · 2017</div>
+                <div class="mock-stars" aria-hidden="true">★★★★★</div>
+              </div>
+              <div class="mock-row">
+                <div class="mock-row-title">Retrieval-Augmented Generation</div>
+                <div class="mock-row-meta">Lewis et al. · 2020</div>
+                <div class="mock-stars dim" aria-hidden="true">★★★★☆</div>
+              </div>
+              <div class="mock-row">
+                <div class="mock-row-title">The Annotated S4</div>
+                <div class="mock-row-meta">Rush &amp; Karamcheti · 2022</div>
+                <div class="mock-stars dim" aria-hidden="true">★★★☆☆</div>
+              </div>
+              <div class="mock-row">
+                <div class="mock-row-title">A Few Useful Things to Know…</div>
+                <div class="mock-row-meta">Domingos · 2012</div>
+                <div class="mock-stars dim" aria-hidden="true">★★★★☆</div>
+              </div>
+            </section>
+
+            <!-- Detail pane -->
+            <section class="mock-detail">
+              <h4 class="mock-detail-title">Attention Is All You Need</h4>
+              <p class="mock-detail-authors">Vaswani, Shazeer, Parmar, et al. · 2017 · NeurIPS</p>
+              <div class="mock-detail-stars" aria-hidden="true">★★★★★</div>
+
+              <p class="mock-chip-label">Topics</p>
+              <div class="mock-chips">
+                <span class="chip">transformers</span>
+                <span class="chip">attention</span>
+                <span class="chip">sequence models</span>
+              </div>
+
+              <p class="mock-chip-label">Methods</p>
+              <div class="mock-chips">
+                <span class="chip">self-attention</span>
+                <span class="chip">encoder-decoder</span>
+              </div>
+
+              <p class="mock-chip-label">Applications</p>
+              <div class="mock-chips">
+                <span class="chip">machine translation</span>
+              </div>
+
+              <div class="mock-detail-actions">
+                <span class="mock-btn">Open in Preview</span>
+                <span class="mock-btn ghost">Mark unread</span>
+              </div>
+            </section>
+          </div>
+        </div>
+        <figcaption class="mock-caption">A representative mock-up. Tags shown are illustrative.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ============ INSTALL ============ -->
+    <section class="section" id="install" aria-labelledby="install-h">
+      <div class="section-head">
+        <h2 id="install-h">Install in three steps</h2>
+        <p class="section-lede">This build is signed ad-hoc (not notarized), so
+        Gatekeeper warns on first launch. The right-click trick is needed once.</p>
+      </div>
+
+      <ol class="steps" role="list">
+        <li class="step">
+          <span class="step-num" aria-hidden="true">1</span>
+          <div>
+            <h3>Download the DMG</h3>
+            <p>Grab <code>Sift-&lt;version&gt;.dmg</code> from the
+            <a href="https://github.com/abhiramm7/sift/releases/latest">latest release</a>.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num" aria-hidden="true">2</span>
+          <div>
+            <h3>Drag to Applications</h3>
+            <p>Open the DMG and drag <code>Sift.app</code> into your
+            <code>Applications</code> folder.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num" aria-hidden="true">3</span>
+          <div>
+            <h3>Right-click → Open</h3>
+            <p>Right-click the app, choose <strong>Open</strong>, then
+            <strong>Open</strong> again to clear the first-launch warning.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="install-cta">
+        <a class="btn btn-primary" href="https://github.com/abhiramm7/sift/releases/latest">Download Sift for macOS</a>
+        <p class="hero-fineprint">Free · macOS 14+ · no account required</p>
+      </div>
+    </section>
+
+    <!-- ============ HONEST SCOPE ============ -->
+    <section class="section section-alt" id="scope" aria-labelledby="scope-h">
+      <div class="section-head">
+        <h2 id="scope-h">What Sift doesn't do</h2>
+        <p class="section-lede">Sift is a catalog, not a citation manager. If you
+        need BibTeX export and DOI lookups, keep your citation tool. Being honest
+        up front so the right people use it.</p>
+      </div>
+
+      <ul class="scope-list" role="list">
+        <li class="scope-item">
+          <span class="scope-x" aria-hidden="true">—</span>
+          <div><h3>No embedded PDF reader</h3><p>Deliberately. It opens PDFs in Preview, where macOS already does annotations well.</p></div>
+        </li>
+        <li class="scope-item">
+          <span class="scope-x" aria-hidden="true">—</span>
+          <div><h3>No citation export</h3><p>No BibTeX, RIS, or DOI lookup. Possible future optional add-on.</p></div>
+        </li>
+        <li class="scope-item">
+          <span class="scope-x" aria-hidden="true">—</span>
+          <div><h3>No cloud account or push sync</h3><p>It uses iCloud Drive for sync, so expect a few seconds of delay — never a login.</p></div>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img class="brand-mark" src="assets/sift-icon.svg" alt="" width="24" height="24" aria-hidden="true">
+        <span>Sift</span>
+      </div>
+      <p class="footer-tag">Built with Swift · No accounts · No telemetry · Plain files you own.</p>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://github.com/abhiramm7/sift">Source</a>
+        <a href="https://github.com/abhiramm7/sift/releases/latest">Releases</a>
+        <a href="https://github.com/abhiramm7/sift#readme">Docs</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

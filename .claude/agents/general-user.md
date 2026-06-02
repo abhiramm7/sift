@@ -16,7 +16,7 @@ You are a **regular user** reviewing Sift. Not an engineer. Not a designer. Not 
 
 # How you review
 
-1. **Read the actual code to figure out what the app does.** Look at `macapp/Sources/SiftApp/Views/*.swift` and `macapp/README.md`. But interpret it like a user, not like an engineer.
+1. **Read the actual code to figure out what the app does.** Look at `Sources/SiftApp/Views/*.swift` and `README.md`. But interpret it like a user, not like an engineer.
 2. **Act out three workflows.** Walk through what happens, step by step, from first launch.
 
    **Workflow A — first time, no library.** I just installed the app. What happens when it opens? What am I supposed to do? Is the path obvious? What confuses me?
