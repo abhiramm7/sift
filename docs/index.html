@@ -26,6 +26,7 @@
       </a>
       <ul class="nav-links">
         <li><a href="#why">Why</a></li>
+        <li><a href="#sync">Sync</a></li>
         <li><a href="#look">A look</a></li>
         <li><a href="#install">Install</a></li>
         <li><a href="https://github.com/abhiramm7/sift">GitHub</a></li>
@@ -42,8 +43,8 @@
         <p class="hero-sub">
           Sift is a fast, native macOS app for engineers and researchers to
           <strong>collect&nbsp;→ tag&nbsp;→ rate&nbsp;→ recall</strong>
-          papers, books, and reports. Everything lives as plain files in a folder
-          you control. No accounts, no server, no subscription.
+          papers, books, and reports. Your papers live as plain files in a folder
+          you control, with no account to make and nothing to subscribe to.
         </p>
 
         <div class="cta-row">
@@ -75,9 +76,9 @@
         <li class="card">
           <div class="card-icon" aria-hidden="true">📄</div>
           <h3>It's yours, as plain files</h3>
-          <p>Every paper is a PDF plus a small JSON file in a folder you pick. No
-          proprietary database, no export ritual, no lock-in. Open it in Finder,
-          back it up, grep it, sync it through iCloud — it's just files.</p>
+          <p>Every paper is a PDF and a small JSON file in a folder you pick.
+          Nothing proprietary, nothing to export your way out of later. Open it in
+          Finder, back it up, grep it, or sync it through iCloud. It's just files.</p>
         </li>
         <li class="card">
           <div class="card-icon" aria-hidden="true">⚡</div>
@@ -88,31 +89,85 @@
         </li>
         <li class="card">
           <div class="card-icon" aria-hidden="true">🔒</div>
-          <h3>Respects your attention</h3>
-          <p>No login, no cloud account, no upsell, no telemetry. One-time
-          download, then it's a tool — not a service that watches you.</p>
+          <h3>No account, no tracking</h3>
+          <p>There's no login and no telemetry. You download it once and it's
+          yours. It stays a tool, not a service keeping tabs on you.</p>
         </li>
         <li class="card">
           <div class="card-icon" aria-hidden="true">✨</div>
-          <h3>Optional-smart</h3>
-          <p>If you have Claude Code or Ollama installed, Sift can auto-tag and
-          summarize locally — but it works completely without them. The
-          intelligence is a convenience, never a dependency.</p>
+          <h3>Smart only if you want</h3>
+          <p>If you have Claude Code or Ollama installed, Sift uses them to tag
+          and summarize papers on your own machine. If you don't, everything else
+          works the same. It's a convenience, not a requirement.</p>
         </li>
       </ul>
     </section>
 
+    <!-- ============ SYNC ============ -->
+    <section class="section" id="sync" aria-labelledby="sync-h">
+      <div class="section-head">
+        <h2 id="sync-h">Sync is just iCloud Drive</h2>
+        <p class="section-lede">
+          Sift keeps your whole library in one folder. Put it in iCloud Drive and
+          macOS keeps every paper, tag, and rating in sync across your Macs.
+          There's no sync server behind Sift, and no account to set up.
+        </p>
+      </div>
+
+      <div class="sync-layout">
+        <div class="sync-pitch">
+          <h3 class="sync-money-head">The part that saves you money</h3>
+          <p class="sync-money-body">
+            Zotero gives you 300&nbsp;MB of file storage free, then charges roughly
+            <strong>$20/yr for 2&nbsp;GB, $60/yr for 6&nbsp;GB, or $120/yr for unlimited</strong>,
+            and a folder of PDFs passes that quickly. Sift runs no storage service at all,
+            so your papers sit in the iCloud storage you already pay for. The free 5&nbsp;GB
+            tier is already about <strong>16&times; Zotero's free limit</strong>, and if you
+            already pay for iCloud+ for your photos and devices, your research library
+            rides along on it.
+          </p>
+          <p class="sync-tagline">If you already pay for the cloud, you don't also pay for the reference manager's cloud.</p>
+        </div>
+
+        <aside class="sync-caveats" aria-label="Sync caveats">
+          <h3 class="caveats-head">Honest caveats</h3>
+          <ul class="caveats-list" role="list">
+            <li>
+              <span class="caveat-icon" aria-hidden="true">—</span>
+              <div>
+                <strong>Not instant push.</strong> iCloud Drive file sync carries a
+                delay of a few seconds to a few minutes, the same as any other file in Drive.
+              </div>
+            </li>
+            <li>
+              <span class="caveat-icon" aria-hidden="true">—</span>
+              <div>
+                <strong>Apple devices only.</strong> Sift itself is macOS-only.
+                The files are visible in the iOS Files app, but there is no
+                iPhone or iPad Sift app.
+              </div>
+            </li>
+            <li>
+              <span class="caveat-icon" aria-hidden="true">—</span>
+              <div>
+                <strong>PDFs are small.</strong> A typical paper is 1–5&nbsp;MB,
+                so even a large library is a few hundred MB against your quota.
+              </div>
+            </li>
+            <li>
+              <span class="caveat-icon" aria-hidden="true">—</span>
+              <div>
+                <strong>Local-only is fine too.</strong> On first launch, point
+                Sift at any folder outside iCloud Drive. It works identically;
+                it just won't sync.
+              </div>
+            </li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
     <!-- ============ A LOOK AT THE APP ============ -->
-    <!--
-      NOTE: This is a pure CSS/HTML mock of Sift's three-pane UI, used because
-      no real screenshot asset exists yet. To replace it with a real screenshot:
-        1. Drop a PNG (ideally @2x, ~1600px wide) at docs/assets/sift-screenshot.png
-           with a matching alt description.
-        2. Replace the entire <div class="mock"> ... </div> block below with:
-           <img src="assets/sift-screenshot.png"
-                alt="Sift's three-pane window: filter sidebar, paper list, and a detail pane with tag chips and a star rating."
-                class="app-shot" width="1200" height="760" loading="lazy">
-    -->
     <section class="section section-alt" id="look" aria-labelledby="look-h">
       <div class="section-head">
         <h2 id="look-h">A look at the app</h2>
@@ -120,91 +175,16 @@
         the middle, the paper's details on the right.</p>
       </div>
 
-      <figure class="mock-wrap">
-        <div class="mock" role="img" aria-label="Mock of Sift's three-pane window. Left: filters for All, Unread, Saved, Rated 4+, and tags. Middle: a list of papers with titles, authors, and years. Right: a detail pane showing a paper's title, a five-star rating, and tag chips grouped by Topics, Methods, and Applications.">
-          <!-- Title bar -->
-          <div class="mock-titlebar" aria-hidden="true">
-            <span class="traffic red"></span>
-            <span class="traffic yellow"></span>
-            <span class="traffic green"></span>
-            <span class="mock-searchbar">Search title, authors, tags…</span>
-          </div>
-
-          <div class="mock-body" aria-hidden="true">
-            <!-- Sidebar -->
-            <aside class="mock-sidebar">
-              <p class="mock-grouplabel">Library</p>
-              <ul>
-                <li class="active">All</li>
-                <li>Unread</li>
-                <li>Saved</li>
-                <li>Rated 4+</li>
-              </ul>
-              <p class="mock-grouplabel">Tags</p>
-              <ul>
-                <li>transformers</li>
-                <li>retrieval</li>
-                <li>systems</li>
-                <li>evaluation</li>
-              </ul>
-            </aside>
-
-            <!-- Paper list -->
-            <section class="mock-list">
-              <div class="mock-row active">
-                <div class="mock-row-title">Attention Is All You Need</div>
-                <div class="mock-row-meta">Vaswani et al. · 2017</div>
-                <div class="mock-stars" aria-hidden="true">★★★★★</div>
-              </div>
-              <div class="mock-row">
-                <div class="mock-row-title">Retrieval-Augmented Generation</div>
-                <div class="mock-row-meta">Lewis et al. · 2020</div>
-                <div class="mock-stars dim" aria-hidden="true">★★★★☆</div>
-              </div>
-              <div class="mock-row">
-                <div class="mock-row-title">The Annotated S4</div>
-                <div class="mock-row-meta">Rush &amp; Karamcheti · 2022</div>
-                <div class="mock-stars dim" aria-hidden="true">★★★☆☆</div>
-              </div>
-              <div class="mock-row">
-                <div class="mock-row-title">A Few Useful Things to Know…</div>
-                <div class="mock-row-meta">Domingos · 2012</div>
-                <div class="mock-stars dim" aria-hidden="true">★★★★☆</div>
-              </div>
-            </section>
-
-            <!-- Detail pane -->
-            <section class="mock-detail">
-              <h4 class="mock-detail-title">Attention Is All You Need</h4>
-              <p class="mock-detail-authors">Vaswani, Shazeer, Parmar, et al. · 2017 · NeurIPS</p>
-              <div class="mock-detail-stars" aria-hidden="true">★★★★★</div>
-
-              <p class="mock-chip-label">Topics</p>
-              <div class="mock-chips">
-                <span class="chip">transformers</span>
-                <span class="chip">attention</span>
-                <span class="chip">sequence models</span>
-              </div>
-
-              <p class="mock-chip-label">Methods</p>
-              <div class="mock-chips">
-                <span class="chip">self-attention</span>
-                <span class="chip">encoder-decoder</span>
-              </div>
-
-              <p class="mock-chip-label">Applications</p>
-              <div class="mock-chips">
-                <span class="chip">machine translation</span>
-              </div>
-
-              <div class="mock-detail-actions">
-                <span class="mock-btn">Open in Preview</span>
-                <span class="mock-btn ghost">Mark unread</span>
-              </div>
-            </section>
-          </div>
-        </div>
-        <figcaption class="mock-caption">A representative mock-up. Tags shown are illustrative.</figcaption>
+      <figure class="shot-wrap">
+        <img
+          src="assets/sift-screenshot.png"
+          alt="Sift's three-pane window. Left sidebar shows Library filters (All, Unread, Saved, Rated 4+) and a tag list. Centre pane lists papers with titles, authors, years, and star ratings. Right detail pane shows the selected paper's title, five-star rating, and tag chips grouped by Topics, Methods, and Applications, with an Open in Preview button."
+          class="app-shot"
+          loading="lazy"
+          decoding="async"
+          width="1200"
+          height="760">
+        <figcaption class="shot-caption">Sift running on macOS — sidebar, paper list, and detail pane.</figcaption>
       </figure>
     </section>
 
@@ -254,8 +234,8 @@
       <div class="section-head">
         <h2 id="scope-h">What Sift doesn't do</h2>
         <p class="section-lede">Sift is a catalog, not a citation manager. If you
-        need BibTeX export and DOI lookups, keep your citation tool. Being honest
-        up front so the right people use it.</p>
+        need BibTeX export and DOI lookups, keep your citation tool. I'd rather be
+        honest about that up front, so the right people end up using it.</p>
       </div>
 
       <ul class="scope-list" role="list">
@@ -269,7 +249,7 @@
         </li>
         <li class="scope-item">
           <span class="scope-x" aria-hidden="true">—</span>
-          <div><h3>No cloud account or push sync</h3><p>It uses iCloud Drive for sync, so expect a few seconds of delay — never a login.</p></div>
+          <div><h3>No cloud account or push sync</h3><p>It uses iCloud Drive for sync, so expect a few seconds of delay, but never a login screen.</p></div>
         </li>
       </ul>
     </section>

@@ -1,13 +1,13 @@
 # Sift
 
 **Sift** is a fast, native macOS app for engineers and researchers who want to
-**collect → tag → rate → recall** papers, books, and reports — without accounts,
-subscriptions, or the complexity of Zotero or Mendeley.
+**collect → tag → rate → recall** papers, books, and reports, without the weight
+of Zotero or Mendeley.
 
-No accounts. No server. No recurring fee. Everything lives as plain files in a
-folder you control — keep it in iCloud Drive and your library syncs across
-devices. PDFs open in Preview (your system default), so the app stays small and
-out of your way.
+There's no account to make and nothing to subscribe to. Your papers live as plain
+files in a folder you choose; keep that folder in iCloud Drive and your library
+syncs across your Macs. PDFs open in Preview, your system default, so the app
+stays small and out of your way.
 
 **[Download Sift →](https://github.com/abhiramm7/sift/releases)** ·
 **[Project page](https://abhiramm7.github.io/sift/)**
@@ -16,32 +16,60 @@ out of your way.
 
 ## Why this app should exist
 
-Reference managers got heavy. Zotero, Mendeley, and Papers/ReadCube each want to
-be a database, a PDF reader, a citation engine, a sync service, and an account
-you log into — and they're slow, cluttered, and increasingly subscription-bound
-for what is, at heart, a simple job: *keep track of the things I read so I can
-find them again.*
+Reference managers got heavy. Zotero, Mendeley, and Papers each try to be a
+database, a PDF reader, a citation engine, a sync service, and a login all at
+once, and they've gotten slow and cluttered in the process. More of them want a
+subscription every year. The job most of us actually have is smaller than that:
+keep track of what I read so I can find it again.
 
-Most working researchers and engineers don't need a citation manager day to day.
-They need to **collect** a paper the moment they find it, **tag** it so it's
-findable, **rate** it so the good stuff floats up, and **recall** it months later
-when it's suddenly relevant. That's the whole loop. Sift does exactly that and
-nothing it doesn't have to:
+Day to day I don't need a citation manager. I need to grab a paper the moment I
+find it, tag it so it turns up later, rate it so the good ones rise, and dig it
+back out months later when it suddenly matters. That loop is what Sift is built
+around, and it tries hard not to do much else.
 
-- **It's yours, as plain files.** Every paper is a PDF plus a small JSON file in
-  a folder you pick. No proprietary database, no export ritual, no lock-in. Open
-  it in Finder, back it up, grep it, sync it through iCloud — it's just files.
-- **It's fast and native.** A SwiftUI Mac app that launches instantly and gets
-  out of the way. It opens PDFs in Preview instead of shipping a worse reader.
-- **It respects your attention.** No login, no cloud account, no upsell, no
-  telemetry. One-time download, then it's a tool, not a service.
-- **It's optional-smart.** If you have Claude Code or Ollama installed, Sift can
-  auto-tag and summarize locally — but it works completely without them. The
-  intelligence is a convenience, never a dependency.
+A few things follow from that. Your library is just files: each paper is a PDF
+and a small JSON file in a folder you pick, with no proprietary database and
+nothing to export your way out of later. You can open it in Finder, back it up,
+or grep it. It's a native Mac app, so it starts fast and stays out of the way,
+and it hands PDFs to Preview instead of shipping a worse reader of its own.
+There's no login and no telemetry, so you download it once and it stays a tool
+rather than a service. And if you happen to have Claude Code or Ollama installed,
+Sift will use them to tag and summarize papers locally; if you don't, the rest
+works exactly the same.
 
-Sift is a catalog, not a citation manager. If you need BibTeX export and DOI
-lookups, keep your citation tool. If what you actually do all day is *read papers
-and lose track of them*, this is for that.
+So: a catalog, not a citation manager. If you need BibTeX and DOI lookups, keep
+the tool you already have. But if your real problem is that you read papers and
+then lose them, this is built for that.
+
+---
+
+## Sync is just iCloud Drive
+
+Sift keeps your whole library in one folder. Put that folder in iCloud Drive
+(it's there by default) and macOS keeps every paper, tag, and rating in sync
+across your Macs. Sift has no sync server of its own and no account to set up. It
+writes plain files, and iCloud moves them around the way it already does for
+everything else on your Mac.
+
+This is also where it saves you money. Zotero gives you 300 MB of file storage
+free and then charges for more: roughly $20 a year for 2 GB, $60 for 6 GB, or
+$120 for unlimited. A folder of PDFs passes 300 MB quickly. Sift doesn't run a
+storage service at all, so your papers sit in the iCloud storage you already pay
+for. The free 5 GB tier is already about sixteen times Zotero's free limit, and
+if you pay for iCloud+ for photos and backups, your library just rides along on
+it. If you're already paying for cloud storage, there's little reason to pay a
+second time for your reference manager's version of it.
+
+A few honest limits, so you know what you're getting:
+
+- It's iCloud Drive file sync, not instant push. Changes take a few seconds to a
+  few minutes to show up on another Mac, like any file in iCloud Drive.
+- It syncs between Apple devices. Sift only runs on macOS, though the files also
+  show up in the Files app on an iPhone or iPad.
+- The files are small. A paper is usually 1 to 5 MB, so even a big library is a
+  few hundred MB.
+- Local-only works too. Pick a folder outside iCloud Drive on first launch and
+  everything behaves the same, it just stays on that Mac.
 
 ---
 
@@ -155,3 +183,12 @@ no-op. The files on disk are the source of truth — there's no separate databas
 | Your library | wherever you pointed it on first launch |
 | App preferences | `~/Library/Preferences/net.randomstorms.Sift.plist` |
 | The app | `/Applications/Sift.app` |
+
+## License
+
+Sift is free software under the **GNU General Public License v3.0**. You can use,
+study, share, and change it; if you distribute a modified version, it has to stay
+under the GPL so everyone downstream keeps the same freedoms. Full text in
+[`LICENSE`](LICENSE).
+
+Copyright (C) 2026 Abhiram Mullapudi.
