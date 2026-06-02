@@ -10,10 +10,10 @@ open in Preview.
 
 ## Why
 
-Zotero, Mendeley, and Papers try to be everything and got heavy. Most of the time
-the job is simpler: keep track of what you read so you can find it again. Sift
-does that loop and little else. It's a catalog, not a citation manager — if you
-need BibTeX and DOI lookups, keep your current tool.
+Most reference managers try to do everything at once and get heavy doing it. Sift
+does one thing well: keep track of the papers you read so you can find them again.
+Collect a paper the moment you find it, tag it, rate it, and pull it back up
+months later. It stays fast, native, and out of your way.
 
 ## Sync & cost
 
@@ -71,12 +71,13 @@ Requires Xcode (Swift 5.9+, macOS 14 SDK). Pure SPM, no Xcode project.
 `paper_id` is the PDF's SHA-256, so re-ingesting a file is a no-op. The files on
 disk are the source of truth; there's no separate database.
 
-## Not yet / out of scope
+## Deliberately simple
 
-No embedded PDF reader or annotations (use Preview), no citation export, no
-CloudKit push sync. A Python `paper` CLI (LLM summaries, semantic search,
-static-site export to randomstorms.net/papers/) lived here until 2026-06-01;
-recoverable from git history.
+Sift stays focused on cataloging. It opens PDFs in Preview rather than embedding
+its own reader, and it syncs through iCloud Drive rather than running its own
+cloud. Citation export (BibTeX, RIS, DOI) may arrive later as an optional add-on.
+A Python `paper` CLI for LLM summaries, semantic search, and static-site export
+lived here until 2026-06-01 and is recoverable from git history.
 
 ## License
 
