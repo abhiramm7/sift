@@ -123,14 +123,15 @@ final class LibraryStore: ObservableObject {
             .sorted { $0.count > $1.count || ($0.count == $1.count && $0.tag < $1.tag) }
     }
 
-    /// All unique LLM-assigned folders across the library, with paper counts.
-    /// Folders are case-folded for uniqueness; the displayed name is the most
-    /// common spelling among papers that share that key.
+    /// All unique folders across the library, with paper counts. Uses each
+    /// paper's `effectiveFolder` (user override if set, else the LLM's
+    /// auto-assigned folder). Case-folded for uniqueness; the displayed name
+    /// is the most common spelling among papers that share that key.
     var allFolders: [(folder: String, count: Int)] {
         var counts: [String: Int] = [:]
         var displays: [String: [String: Int]] = [:]  // key -> {spelling -> count}
         for p in papers {
-            guard let f = p.auto?.folder?.trimmingCharacters(in: .whitespacesAndNewlines),
+            guard let f = p.effectiveFolder?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !f.isEmpty else { continue }
             let key = f.lowercased()
             counts[key, default: 0] += 1
@@ -144,6 +145,8 @@ final class LibraryStore: ObservableObject {
     }
 
     /// Folder names in their current canonical spelling, for the LLM prompt.
+    /// Includes user-set folders so the LLM will reuse names the user has
+    /// adopted, not just ones the LLM previously invented.
     var folderVocabulary: [String] {
         allFolders.map { $0.folder }
     }
@@ -420,18 +423,17 @@ final class LibraryStore: ObservableObject {
         return noTags || badTitle || badAuthors || noSummary || noFolder
     }
 
-    /// Set the paper's folder (LLM-assigned, but also user-editable from the UI).
-    /// Pass nil to clear.
-    func setFolder(_ folder: String?, for id: String) {
+    /// Set the user's folder override. Stored at the top level as `user_folder`
+    /// so the LLM's tagging pass (which writes `auto.folder`) never clobbers it.
+    /// Pass nil to clear the override and fall back to the LLM's suggestion.
+    func setUserFolder(_ folder: String?, for id: String) {
         let cleaned = folder?.trimmingCharacters(in: .whitespacesAndNewlines)
         updateMetadata(id: id) { obj in
-            var auto = (obj["auto"] as? [String: Any]) ?? [:]
             if let f = cleaned, !f.isEmpty {
-                auto["folder"] = f
+                obj["user_folder"] = f
             } else {
-                auto.removeValue(forKey: "folder")
+                obj.removeValue(forKey: "user_folder")
             }
-            obj["auto"] = auto
         }
     }
 

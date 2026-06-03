@@ -227,7 +227,7 @@ struct ContentView: View {
         case .folder(let f):
             let key = f.lowercased()
             base = store.papers.filter { paper in
-                (paper.auto?.folder ?? "").lowercased() == key
+                (paper.effectiveFolder ?? "").lowercased() == key
             }
         }
         guard !searchText.isEmpty else { return base }

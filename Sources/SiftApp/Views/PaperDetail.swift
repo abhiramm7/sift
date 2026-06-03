@@ -14,6 +14,9 @@ struct PaperDetail: View {
     @State private var newTagDraft: String = ""
     // Raw metadata disclosure (hidden by default)
     @State private var showRawMeta: Bool = false
+    // New-folder sheet
+    @State private var showNewFolderSheet: Bool = false
+    @State private var newFolderDraft: String = ""
 
     var body: some View {
         ScrollView {
@@ -104,8 +107,82 @@ struct PaperDetail: View {
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .help("Change kind")
+                folderMenu
             }
         }
+    }
+
+    /// Folder picker — sits next to Kind. Lists existing folders (with a
+    /// checkmark on the current one), a "New folder…" entry, and "Use
+    /// suggested" when a user override is active.
+    @ViewBuilder
+    private var folderMenu: some View {
+        let effective = paper.effectiveFolder
+        let hasUserOverride = (paper.user_folder?.isEmpty == false)
+        let folders = store.allFolders.map { $0.folder }
+        Menu {
+            ForEach(folders, id: \.self) { name in
+                Button {
+                    store.setUserFolder(name, for: paper.id)
+                } label: {
+                    if effective?.caseInsensitiveCompare(name) == .orderedSame {
+                        Label(name, systemImage: "checkmark")
+                    } else {
+                        Text(name)
+                    }
+                }
+            }
+            if !folders.isEmpty { Divider() }
+            Button("New folder…") {
+                newFolderDraft = ""
+                showNewFolderSheet = true
+            }
+            if hasUserOverride {
+                Divider()
+                Button("Use suggested") {
+                    store.setUserFolder(nil, for: paper.id)
+                }
+                .help("Clear the manual override and use the LLM's suggestion (\(paper.auto?.folder ?? "none yet"))")
+            }
+        } label: {
+            Label(effective ?? "No folder", systemImage: "folder")
+                .foregroundStyle(.secondary)
+                .font(.caption)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(hasUserOverride
+              ? "Folder (manually set). Suggested: \(paper.auto?.folder ?? "none yet")."
+              : "Folder (auto-assigned). Pick to override.")
+        .sheet(isPresented: $showNewFolderSheet) {
+            newFolderSheet
+        }
+    }
+
+    private var newFolderSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("New folder").font(.headline)
+            TextField("Folder name", text: $newFolderDraft)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 280)
+                .onSubmit { commitNewFolder() }
+            HStack {
+                Spacer()
+                Button("Cancel") { showNewFolderSheet = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Save", action: commitNewFolder)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(newFolderDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(20)
+    }
+
+    private func commitNewFolder() {
+        let cleaned = newFolderDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return }
+        store.setUserFolder(cleaned, for: paper.id)
+        showNewFolderSheet = false
     }
 
     private func startTitleEdit() {

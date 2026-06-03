@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct PaperList: View {
     @EnvironmentObject var store: LibraryStore
@@ -31,6 +32,16 @@ struct PaperList: View {
                 Text(p.title)
                     .font(.body)
                     .lineLimit(2)
+                    .onHover { hovering in
+                        // The double-click-to-open gesture is invisible without
+                        // a cursor change — Table doesn't inherit NSTableView's
+                        // built-in pointing-hand on clickable cells.
+                        if hovering {
+                            NSCursor.pointingHand.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
             }
 
             TableColumn("Authors") { p in
@@ -150,7 +161,7 @@ struct PaperList: View {
 
     private var emptyMessage: String {
         if store.papers.isEmpty {
-            return "Drop a PDF onto the window or press ⌘N to add one. Or run `paper add` from the terminal."
+            return "Drop a PDF onto the window or press ⌘N to add one."
         } else {
             return "No items match your filters."
         }

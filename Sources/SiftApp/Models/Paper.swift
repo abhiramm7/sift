@@ -56,11 +56,24 @@ struct Paper: Codable, Identifiable, Hashable {
     var kind: PaperKind = .paper
     var pages: Int?
     var user_tags: [String] = []
+    /// User-set folder. Takes precedence over `auto.folder` when non-nil. nil
+    /// means "use the LLM's suggestion." Stored at the top level (not in
+    /// AutoMeta) so the LLM's tagging pass never clobbers it.
+    var user_folder: String?
     var auto: AutoMeta?
+
+    /// The folder this paper effectively belongs to: user override if set,
+    /// otherwise the LLM's auto-assigned folder.
+    var effectiveFolder: String? {
+        if let uf = user_folder?.trimmingCharacters(in: .whitespacesAndNewlines), !uf.isEmpty {
+            return uf
+        }
+        return auto?.folder
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, title, authors, year, venue, doi, arxiv_id, added_at,
-             sha256, source, kind, pages, user_tags, auto
+             sha256, source, kind, pages, user_tags, user_folder, auto
     }
 
     init(from decoder: Decoder) throws {
@@ -83,6 +96,7 @@ struct Paper: Codable, Identifiable, Hashable {
         }
         pages = try? c.decodeIfPresent(Int.self, forKey: .pages)
         user_tags = (try? c.decode([String].self, forKey: .user_tags)) ?? []
+        user_folder = try? c.decodeIfPresent(String.self, forKey: .user_folder)
         auto = try? c.decodeIfPresent(AutoMeta.self, forKey: .auto)
     }
 

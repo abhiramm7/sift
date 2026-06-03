@@ -36,8 +36,16 @@ struct Sidebar: View {
                 }
             }
 
-            if !store.allFolders.isEmpty {
-                Section("Folders") {
+            Section("Folders") {
+                if store.allFolders.isEmpty {
+                    // Always show the section so first-time users know it's
+                    // coming — otherwise a Folders section appearing later
+                    // feels like a glitch (general-user agent caught this).
+                    Text("Tag papers to fill this in.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.vertical, 2)
+                } else {
                     ForEach(store.allFolders, id: \.folder) { entry in
                         Label(entry.folder, systemImage: "folder")
                             .badge(entry.count)
