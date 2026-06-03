@@ -11,6 +11,11 @@ struct SiftApp: App {
                 .frame(minWidth: 900, minHeight: 560)
                 .task {
                     await store.rescan()
+                    // Detect the LLM provider on launch — otherwise the
+                    // Re-extract / Tag all / Regenerate buttons stay greyed
+                    // out until the user opens Settings (which triggers
+                    // refresh as a side effect).
+                    await store.refreshLLMProvider()
                 }
         }
         .commands {
