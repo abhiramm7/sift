@@ -133,7 +133,6 @@ struct Paper: Codable, Identifiable, Hashable {
     var authorsShort: String {
         if authors.isEmpty { return "" }
         if authors.count == 1 { return authors[0] }
-        if authors.count == 2 { return "\(authors[0]) & \(authors[1])" }
         return "\(authors[0]) et al."
     }
 

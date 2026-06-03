@@ -608,20 +608,23 @@ final class LibraryStore: ObservableObject {
                 canon.folder = LLMTagger.canonicalizeFolder(f, against: existingFolders)
             }
 
-            // Decide whether to overwrite the title: only if the existing one
-            // looks bad AND the LLM's suggestion looks plausible.
+            // Title: on the conservative path (force=false, bulk), only
+            // overwrite when the existing one looks bad. On force=true
+            // (user-triggered re-extract), accept any plausible LLM title —
+            // the whole point of re-extract is to fix titles the heuristic
+            // misses.
             let titleUpdate: String? = {
                 guard let proposed = canon.title,
-                      LLMTagger.isLikelyBadTitle(existingTitle),
                       LLMTagger.isPlausibleTitle(proposed) else { return nil }
-                return proposed
+                if force { return proposed != existingTitle ? proposed : nil }
+                return LLMTagger.isLikelyBadTitle(existingTitle) ? proposed : nil
             }()
-            // Same gating logic for authors.
+            // Same logic for authors.
             let authorsUpdate: [String]? = {
                 guard let proposed = canon.authors,
-                      LLMTagger.areLikelyBadAuthors(existingAuthors),
                       LLMTagger.arePlausibleAuthors(proposed) else { return nil }
-                return proposed
+                if force { return proposed != existingAuthors ? proposed : nil }
+                return LLMTagger.areLikelyBadAuthors(existingAuthors) ? proposed : nil
             }()
 
             do {

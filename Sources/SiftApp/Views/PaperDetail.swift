@@ -226,6 +226,7 @@ struct PaperDetail: View {
                     Label("arXiv", systemImage: "link")
                 }
             }
+            reExtractButton
             Spacer()
             Button(role: .destructive) {
                 showDeleteConfirm = true
@@ -451,6 +452,33 @@ struct PaperDetail: View {
     private func filterAutoTags(_ tags: [String], against userTags: [String]) -> [String] {
         let userLower = Set(userTags.map { $0.lowercased() })
         return tags.filter { !userLower.contains($0.lowercased()) }
+    }
+
+    /// Action-row button: full LLM re-extraction of title, authors, tags,
+    /// summary, and folder. Unlike the conservative bulk-tag path, this is
+    /// force-mode — it will replace a title even when the heuristic thinks
+    /// the current title is fine. For when the user sees a bad title that
+    /// slipped through.
+    @ViewBuilder
+    private var reExtractButton: some View {
+        let inFlight = store.taggingInFlight.contains(paper.id)
+        let providerAvailable = store.llmProvider.isAvailable
+        Button {
+            store.generateTagsInBackground(for: paper.id, force: true, mode: .full)
+        } label: {
+            if inFlight {
+                HStack(spacing: 4) {
+                    ProgressView().controlSize(.small)
+                    Text("Re-extracting…")
+                }
+            } else {
+                Label("Re-extract", systemImage: "sparkles")
+            }
+        }
+        .disabled(inFlight || !providerAvailable)
+        .help(providerAvailable
+              ? "Re-run the LLM to refresh title, authors, tags, summary, and folder."
+              : "No LLM detected — open Settings to choose Claude or Ollama.")
     }
 
     private var generateTagsButton: some View {
