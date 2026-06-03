@@ -213,6 +213,11 @@ struct PaperDetail: View {
                 Label("Reveal in Finder", systemImage: "folder")
             }
 
+            ShareLink(item: store.config.pdfURL(paper.id)) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .help("Share the PDF — AirDrop, Mail, Messages, Notes, etc.")
+
             if let arxiv = paper.arxiv_id, !arxiv.isEmpty,
                let url = URL(string: "https://arxiv.org/abs/\(arxiv)") {
                 Button {

@@ -24,12 +24,14 @@ enum PaperKind: String, Codable, CaseIterable, Hashable {
     case paper
     case book
     case report
+    case poster
 
     var symbol: String {
         switch self {
         case .paper: return "doc.text"
         case .book: return "book"
         case .report: return "chart.bar.doc.horizontal"
+        case .poster: return "rectangle.portrait"
         }
     }
 
@@ -38,6 +40,7 @@ enum PaperKind: String, Codable, CaseIterable, Hashable {
         case .paper: return "Paper"
         case .book: return "Book"
         case .report: return "Report"
+        case .poster: return "Poster"
         }
     }
 }

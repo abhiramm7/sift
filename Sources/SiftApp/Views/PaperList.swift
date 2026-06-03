@@ -183,6 +183,7 @@ struct PaperList: View {
         let prefs = store.prefs(for: p.id)
         Button("Open in Preview") { store.openInPreview(p) }
         Button("Reveal in Finder") { store.revealInFinder(p) }
+        ShareLink("Share…", item: store.config.pdfURL(p.id))
         Divider()
         Button(prefs.read ? "Mark as Unread" : "Mark as Read") {
             store.setRead(!prefs.read, for: p.id)
