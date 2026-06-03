@@ -745,8 +745,18 @@ enum LLMTagger {
 
     // MARK: - Title heuristic
 
+    /// PDFKit often returns the authoring-tool name in the title attribute
+    /// instead of the real title. These markers trigger an LLM rescue.
+    private static let nonTitleMarkers: [String] = [
+        "microsoft word", "microsoft office", "microsoft powerpoint",
+        "latex", "pdflatex", "lualatex", "xelatex", "tex output",
+        "adobe acrobat", "adobe indesign", "adobe illustrator",
+        "preview.app", "pdfcreator", "pdftk", "ghostscript",
+        "openoffice", "libreoffice",
+    ]
+
     /// True if the current title looks like junk (filename / arxiv id / empty /
-    /// "Untitled") and should be replaced by an LLM-extracted title.
+    /// "Untitled" / compile-tool name) and should be replaced by an LLM-extracted title.
     static func isLikelyBadTitle(_ title: String) -> Bool {
         let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
         if t.isEmpty { return true }
@@ -754,6 +764,11 @@ enum LLMTagger {
         let lower = t.lowercased()
         if lower == "untitled" || lower == "no title" { return true }
         if lower.hasSuffix(".pdf") { return true }
+        // "Untitled1", "Untitled-2", "Untitled document" — Word/Pages default names.
+        if lower.range(of: #"^untitled[\s\-_]*\d*$"#, options: .regularExpression) != nil { return true }
+        if lower.hasPrefix("untitled document") { return true }
+        // Compile-tool names PDFKit happily returns as the "title".
+        for marker in nonTitleMarkers where lower.contains(marker) { return true }
 
         // arXiv-id-ish: 2401.12345, 1706.03762v2, hep-th/0101001, plus optional vN
         if t.range(of: #"^\d{4}\.\d{4,5}(v\d+)?$"#, options: .regularExpression) != nil { return true }

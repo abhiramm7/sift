@@ -9,6 +9,7 @@ enum LibraryFilter: Hashable {
     case kind(PaperKind)
     case tag(String)
     case folder(String)
+    case author(String)
 }
 
 struct ContentView: View {
@@ -228,6 +229,11 @@ struct ContentView: View {
             let key = f.lowercased()
             base = store.papers.filter { paper in
                 (paper.effectiveFolder ?? "").lowercased() == key
+            }
+        case .author(let a):
+            let key = a.lowercased()
+            base = store.papers.filter { paper in
+                paper.authors.contains { $0.lowercased() == key }
             }
         }
         guard !searchText.isEmpty else { return base }

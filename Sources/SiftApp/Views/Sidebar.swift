@@ -5,8 +5,11 @@ struct Sidebar: View {
     @Binding var filter: LibraryFilter
     @State private var tagSearch: String = ""
     @State private var showAllTags: Bool = false
+    @State private var authorSearch: String = ""
+    @State private var showAllAuthors: Bool = false
 
     private let initialTagCount = 40
+    private let initialAuthorCount = 30
 
     var body: some View {
         List(selection: Binding(
@@ -54,6 +57,42 @@ struct Sidebar: View {
                 }
             }
 
+            if !store.allAuthors.isEmpty {
+                Section {
+                    if showAllAuthors {
+                        TextField("Filter authors", text: $authorSearch)
+                            .textFieldStyle(.roundedBorder)
+                            .padding(.vertical, 2)
+                    }
+                    ForEach(filteredAuthors, id: \.author) { entry in
+                        Label(entry.author, systemImage: "person")
+                            .badge(entry.count)
+                            .tag(LibraryFilter.author(entry.author))
+                    }
+                    if !showAllAuthors, store.allAuthors.count > initialAuthorCount {
+                        Button("Show all \(store.allAuthors.count) authors…") {
+                            showAllAuthors = true
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                    }
+                } header: {
+                    HStack {
+                        Text("Authors")
+                        Spacer()
+                        if showAllAuthors {
+                            Button("Show top \(initialAuthorCount)") {
+                                showAllAuthors = false
+                                authorSearch = ""
+                            }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
+                        }
+                    }
+                }
+            }
+
             if !store.allTags.isEmpty {
                 Section {
                     if showAllTags {
@@ -91,6 +130,14 @@ struct Sidebar: View {
             }
         }
         .listStyle(.sidebar)
+    }
+
+    private var filteredAuthors: [(author: String, count: Int)] {
+        let all = store.allAuthors
+        let scoped = showAllAuthors ? all : Array(all.prefix(initialAuthorCount))
+        let q = authorSearch.lowercased().trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return scoped }
+        return scoped.filter { $0.author.lowercased().contains(q) }
     }
 
     private var filteredTags: [(tag: String, count: Int)] {

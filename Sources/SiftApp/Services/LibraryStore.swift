@@ -151,6 +151,29 @@ final class LibraryStore: ObservableObject {
         allFolders.map { $0.folder }
     }
 
+    /// All authors across the library with paper counts. Every author across
+    /// every position counts — so a paper by ["Abhiram", "Branko"] contributes
+    /// one to each name. Case-folded dedup; the displayed spelling is the
+    /// most common one for that case-folded key.
+    var allAuthors: [(author: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        var displays: [String: [String: Int]] = [:]
+        for p in papers {
+            for a in p.authors {
+                let cleaned = a.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !cleaned.isEmpty else { continue }
+                let key = cleaned.lowercased()
+                counts[key, default: 0] += 1
+                displays[key, default: [:]][cleaned, default: 0] += 1
+            }
+        }
+        return counts.map { (key, count) -> (author: String, count: Int) in
+            let display = displays[key]?.max(by: { $0.value < $1.value })?.key ?? key
+            return (display, count)
+        }
+        .sorted { $0.count > $1.count || ($0.count == $1.count && $0.author < $1.author) }
+    }
+
     func openInPreview(_ paper: Paper) {
         let url = config.pdfURL(paper.id)
         guard FileManager.default.fileExists(atPath: url.path) else {
