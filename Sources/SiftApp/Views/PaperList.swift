@@ -200,6 +200,19 @@ struct PaperList: View {
             Divider()
             Button("Clear rating") { store.setRating(nil, for: p.id) }
         }
+        Menu("Kind") {
+            ForEach(PaperKind.allCases, id: \.self) { k in
+                Button {
+                    store.setKind(k, for: p.id)
+                } label: {
+                    if k == p.kind {
+                        Label(k.label, systemImage: "checkmark")
+                    } else {
+                        Label(k.label, systemImage: k.symbol)
+                    }
+                }
+            }
+        }
         Divider()
         if let arxiv = p.arxiv_id, !arxiv.isEmpty {
             Button("Open arXiv page") {
