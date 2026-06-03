@@ -46,15 +46,23 @@ existing library and your papers, tags, and ratings show up.
 
 ## Using it
 
-- **Add:** drag a PDF onto the window, **⌘N** to add a file or arXiv link/ID, or
-  drop into `<library>/inbox/` and press **⌘R**.
-- **Organize:** sidebar filters (All / Unread / Saved / Rated 4+, by kind, by
-  tag); sort and search the list; rate 1–5; toggle read/saved; edit title, kind,
-  and tags inline; **⌫** deletes to Trash.
+- **Add:** drag a PDF onto the window, **⌘N** for a file or arXiv link, or drop
+  into `<library>/inbox/` and press **⌘R**. Double-click a row in the list to
+  open the PDF in Preview.
+- **Organize:** sidebar filters by Library, Kind (papers / books / reports /
+  posters), Folder, Author, and Tag; sort and search the list; rate 1–5; toggle
+  read/saved; edit title, kind, and tags inline; **⌫** deletes to Trash. Click
+  the **Authors** or **Tags** header to collapse it when those lists get long.
+- **Share:** detail pane and right-click both have a Share action that opens
+  the macOS share sheet — AirDrop, Mail, Messages, Notes.
 - **Auto-tag (optional):** with Claude Code or Ollama installed, Sift fills
-  Topics/Applications/Methods tags, fixes bad titles/authors, and writes a short
-  summary at ingest. Pick the provider and model in Settings. Works fine without
-  either.
+  Topics/Applications/Methods tags, fixes bad titles and authors, writes a short
+  summary, and assigns a subject-area folder at ingest. The folder list is
+  built from your existing library, so the LLM reuses names you already have
+  instead of inventing new ones. If a pick is wrong, override it in the detail
+  pane. Pick the provider and model in Settings. Works fine without either.
+- **Re-extract:** one click in the detail pane re-runs the LLM on the current
+  paper — for when an old paper still has a junky title.
 
 ## Build
 
