@@ -7,6 +7,10 @@ struct Sidebar: View {
     @State private var showAllTags: Bool = false
     @State private var authorSearch: String = ""
     @State private var showAllAuthors: Bool = false
+    // Collapsed/expanded state persists across launches — Authors and Tags
+    // can get long enough that the user wants them out of the way.
+    @AppStorage("Sift.sidebarAuthorsExpanded") private var authorsExpanded: Bool = true
+    @AppStorage("Sift.sidebarTagsExpanded") private var tagsExpanded: Bool = true
 
     private let initialTagCount = 40
     private let initialAuthorCount = 30
@@ -59,77 +63,122 @@ struct Sidebar: View {
 
             if !store.allAuthors.isEmpty {
                 Section {
-                    if showAllAuthors {
-                        TextField("Filter authors", text: $authorSearch)
-                            .textFieldStyle(.roundedBorder)
-                            .padding(.vertical, 2)
-                    }
-                    ForEach(filteredAuthors, id: \.author) { entry in
-                        Label(entry.author, systemImage: "person")
-                            .badge(entry.count)
-                            .tag(LibraryFilter.author(entry.author))
-                    }
-                    if !showAllAuthors, store.allAuthors.count > initialAuthorCount {
-                        Button("Show all \(store.allAuthors.count) authors…") {
-                            showAllAuthors = true
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                    }
-                } header: {
-                    HStack {
-                        Text("Authors")
-                        Spacer()
+                    if authorsExpanded {
                         if showAllAuthors {
-                            Button("Show top \(initialAuthorCount)") {
-                                showAllAuthors = false
-                                authorSearch = ""
+                            TextField("Filter authors", text: $authorSearch)
+                                .textFieldStyle(.roundedBorder)
+                                .padding(.vertical, 2)
+                        }
+                        ForEach(filteredAuthors, id: \.author) { entry in
+                            Label(entry.author, systemImage: "person")
+                                .badge(entry.count)
+                                .tag(LibraryFilter.author(entry.author))
+                        }
+                        if !showAllAuthors, store.allAuthors.count > initialAuthorCount {
+                            Button("Show all \(store.allAuthors.count) authors…") {
+                                showAllAuthors = true
                             }
                             .buttonStyle(.borderless)
+                            .foregroundStyle(.secondary)
                             .font(.caption)
                         }
                     }
+                } header: {
+                    collapsibleHeader(
+                        title: "Authors",
+                        count: store.allAuthors.count,
+                        isExpanded: $authorsExpanded,
+                        trailing: {
+                            if authorsExpanded && showAllAuthors {
+                                Button("Show top \(initialAuthorCount)") {
+                                    showAllAuthors = false
+                                    authorSearch = ""
+                                }
+                                .buttonStyle(.borderless)
+                                .font(.caption)
+                            }
+                        })
                 }
             }
 
             if !store.allTags.isEmpty {
                 Section {
-                    if showAllTags {
-                        TextField("Filter tags", text: $tagSearch)
-                            .textFieldStyle(.roundedBorder)
-                            .padding(.vertical, 2)
-                    }
-                    ForEach(filteredTags, id: \.tag) { entry in
-                        Label("#\(entry.tag)", systemImage: "tag")
-                            .badge(entry.count)
-                            .tag(LibraryFilter.tag(entry.tag))
-                    }
-                    if !showAllTags, store.allTags.count > initialTagCount {
-                        Button("Show all \(store.allTags.count) tags…") {
-                            showAllTags = true
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                    }
-                } header: {
-                    HStack {
-                        Text("Tags")
-                        Spacer()
+                    if tagsExpanded {
                         if showAllTags {
-                            Button("Show top \(initialTagCount)") {
-                                showAllTags = false
-                                tagSearch = ""
+                            TextField("Filter tags", text: $tagSearch)
+                                .textFieldStyle(.roundedBorder)
+                                .padding(.vertical, 2)
+                        }
+                        ForEach(filteredTags, id: \.tag) { entry in
+                            Label("#\(entry.tag)", systemImage: "tag")
+                                .badge(entry.count)
+                                .tag(LibraryFilter.tag(entry.tag))
+                        }
+                        if !showAllTags, store.allTags.count > initialTagCount {
+                            Button("Show all \(store.allTags.count) tags…") {
+                                showAllTags = true
                             }
                             .buttonStyle(.borderless)
+                            .foregroundStyle(.secondary)
                             .font(.caption)
                         }
                     }
+                } header: {
+                    collapsibleHeader(
+                        title: "Tags",
+                        count: store.allTags.count,
+                        isExpanded: $tagsExpanded,
+                        trailing: {
+                            if tagsExpanded && showAllTags {
+                                Button("Show top \(initialTagCount)") {
+                                    showAllTags = false
+                                    tagSearch = ""
+                                }
+                                .buttonStyle(.borderless)
+                                .font(.caption)
+                            }
+                        })
                 }
             }
         }
         .listStyle(.sidebar)
+    }
+
+    /// Standard collapsible-section header: chevron + title; the whole header
+    /// is a button that toggles `isExpanded`. When collapsed, shows the count
+    /// so the user knows what's hidden. Optional trailing view sits on the
+    /// right (e.g. the "Show top N" toggle when fully expanded).
+    @ViewBuilder
+    private func collapsibleHeader<Trailing: View>(
+        title: String,
+        count: Int,
+        isExpanded: Binding<Bool>,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(spacing: 4) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isExpanded.wrappedValue.toggle()
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
+                    Text(title)
+                    if !isExpanded.wrappedValue {
+                        Text("(\(count))")
+                            .foregroundStyle(.tertiary)
+                            .font(.caption)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            trailing()
+        }
     }
 
     private var filteredAuthors: [(author: String, count: Int)] {
