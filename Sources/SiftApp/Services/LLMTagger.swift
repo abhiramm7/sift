@@ -49,7 +49,7 @@ enum LLMTagger {
         }
     }
 
-    /// LLM-extracted info: title, authors, summary, and categorized tags.
+    /// LLM-extracted info: title, authors, summary, categorized tags, folder.
     struct ExtractedInfo: Equatable {
         var title: String?           // human-readable, NOT kebab-case
         var authors: [String]?       // ["First Last", "Other Person", ...]
@@ -57,6 +57,7 @@ enum LLMTagger {
         var topics: [String]
         var applicationAreas: [String]
         var methods: [String]
+        var folder: String?          // human-readable subject area, e.g. "Machine Learning"
 
         /// Flat union of tags, deduped — for `auto.tags` (legacy/search).
         var union: [String] {
@@ -73,6 +74,7 @@ enum LLMTagger {
                 && (authors?.isEmpty ?? true)
                 && (summary?.isEmpty ?? true)
                 && topics.isEmpty && applicationAreas.isEmpty && methods.isEmpty
+                && (folder?.isEmpty ?? true)
         }
     }
 
@@ -301,11 +303,24 @@ enum LLMTagger {
 
     // MARK: - Public API
 
-    /// Extract title + summary + categorized tags. Throws if no provider is available.
+    /// Extract title + summary + categorized tags + folder. Throws if no provider is available.
     /// `vocabulary` (optional) is a pre-rendered string of existing library tags
     /// that the LLM is told to prefer over inventing new ones.
-    static func extractInfo(currentTitle: String, text: String, vocabulary: String = "", using provider: Provider) async throws -> ExtractedInfo {
-        let prompt = buildPrompt(currentTitle: currentTitle, text: text, vocabulary: vocabulary)
+    /// `existingFolders` (optional) is the library's current folder list. The LLM
+    /// is told to reuse one of them when it fits and only invent a new folder
+    /// when none does.
+    static func extractInfo(
+        currentTitle: String,
+        text: String,
+        vocabulary: String = "",
+        existingFolders: [String] = [],
+        using provider: Provider
+    ) async throws -> ExtractedInfo {
+        let prompt = buildPrompt(
+            currentTitle: currentTitle,
+            text: text,
+            vocabulary: vocabulary,
+            existingFolders: existingFolders)
         let raw: String
         switch provider {
         case .claude(let bin, let model):
@@ -320,7 +335,12 @@ enum LLMTagger {
 
     // MARK: - Prompt
 
-    static func buildPrompt(currentTitle: String, text: String, vocabulary: String = "") -> String {
+    static func buildPrompt(
+        currentTitle: String,
+        text: String,
+        vocabulary: String = "",
+        existingFolders: [String] = []
+    ) -> String {
         let vocabSection: String
         if vocabulary.isEmpty {
             vocabSection = ""
@@ -334,10 +354,28 @@ enum LLMTagger {
             \(vocabulary)
             """
         }
+        let folderSection: String
+        if existingFolders.isEmpty {
+            folderSection = """
+
+
+            EXISTING FOLDERS
+            None yet. Choose a broad subject-area name for the "folder" field.
+            """
+        } else {
+            folderSection = """
+
+
+            EXISTING FOLDERS
+            Reuse one of these folders when it fits the paper. Only invent a new folder when none of them is a reasonable fit. New folders follow the same Title-Case human-readable style.
+
+            \(existingFolders.map { "- \($0)" }.joined(separator: "\n"))
+            """
+        }
         return """
         You extract structured info from academic documents for a personal library.
 
-        Given the existing-title hint and the full text of a paper, book, or report, output a JSON object with SIX keys:
+        Given the existing-title hint and the full text of a paper, book, or report, output a JSON object with SEVEN keys:
 
         - "title": the document's actual title, as a human-readable string. Look at the first page text and extract the real title. If the existing-title hint already looks like a real title, return it unchanged. If it looks like an arXiv ID (e.g. "2401.12345"), a filename, "Untitled", or otherwise junky, replace it with the title you find in the text. If you cannot find a confident title, return null.
         - "authors": array of human author names in the order they appear ("First Last", e.g. "Ashish Vaswani"). Exclude affiliations, emails, "et al.", and obvious non-people like "Microsoft Word", "LaTeX". Return an empty array if you cannot identify the authors confidently.
@@ -345,13 +383,15 @@ enum LLMTagger {
         - "topics": general subject areas the document fits into (3 to 5 tags). Examples: "machine-learning", "computer-vision", "hydrology", "climate-science", "operating-systems".
         - "application_areas": real-world problems or domains the work targets (1 to 4 tags). Examples: "drug-discovery", "machine-translation", "flood-forecasting", "autonomous-driving". Empty array if the work is purely theoretical.
         - "methods": specific techniques, algorithms, or model classes used or proposed (2 to 6 tags). Examples: "transformers", "graph-neural-networks", "monte-carlo", "kalman-filter", "diffusion-models".
+        - "folder": a single Title-Case subject-area folder name for this paper, e.g. "Machine Learning", "Hydrology", "Robotics", "Climate Science". See the EXISTING FOLDERS list below — reuse one of those when it fits; only invent a new folder when none of them fits.
 
         Rules:
         - Output ONLY a JSON object. No prose before or after, no markdown code fences around the JSON itself.
-        - The "title", "authors", and "summary" values are normal human-readable strings (NOT kebab-case). Tags are lowercase kebab-case, ASCII letters/digits/hyphens only.
+        - The "title", "authors", "summary", and "folder" values are normal human-readable strings (NOT kebab-case). Tags are lowercase kebab-case, ASCII letters/digits/hyphens only.
         - No author names, no years, no venue or publisher names in the tags.
         - No generic tags like "research", "study", "analysis", "paper", "method".
-        - If a category does not apply, return an empty array — never omit the key.\(vocabSection)
+        - If a category does not apply, return an empty array — never omit the key.
+        - The "folder" must be a single string, not an array.\(vocabSection)\(folderSection)
 
         Existing title hint: \(currentTitle.isEmpty ? "(none)" : currentTitle)
 
@@ -620,6 +660,17 @@ enum LLMTagger {
         let topics = stringArray(from: obj["topics"])
         let apps = stringArray(from: obj["application_areas"] ?? obj["applications"] ?? obj["application areas"])
         let methods = stringArray(from: obj["methods"])
+        let folder: String? = {
+            // Accept "folder": "Machine Learning" — or, if the LLM goofed and
+            // returned an array, take the first element.
+            if let s = obj["folder"] as? String {
+                return normalizeFolder(s)
+            }
+            if let arr = obj["folder"] as? [Any], let first = arr.first as? String {
+                return normalizeFolder(first)
+            }
+            return nil
+        }()
 
         return ExtractedInfo(
             title: title,
@@ -627,7 +678,34 @@ enum LLMTagger {
             summary: summary,
             topics: normalize(topics, max: 5),
             applicationAreas: normalize(apps, max: 4),
-            methods: normalize(methods, max: 6))
+            methods: normalize(methods, max: 6),
+            folder: folder)
+    }
+
+    /// Clean an LLM-proposed folder name: trim, collapse whitespace, drop empties.
+    /// Does NOT force Title Case — the LLM is asked for it, and snapping to an
+    /// existing folder happens in `canonicalizeFolder(_:against:)`.
+    static func normalizeFolder(_ raw: String) -> String? {
+        let trimmed = raw
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        guard trimmed.count >= 2, trimmed.count <= 60 else { return nil }
+        let lower = trimmed.lowercased()
+        if ["none", "n/a", "unknown", "uncategorized", "other", "miscellaneous"].contains(lower) {
+            return nil
+        }
+        return trimmed
+    }
+
+    /// Snap an LLM-proposed folder to an existing one if it's a case-insensitive
+    /// match — keeps the library from accumulating "Machine Learning" /
+    /// "machine learning" / "Machine learning" as three separate folders.
+    static func canonicalizeFolder(_ proposed: String, against existing: [String]) -> String {
+        let key = proposed.lowercased()
+        if let match = existing.first(where: { $0.lowercased() == key }) {
+            return match
+        }
+        return proposed
     }
 
     // MARK: - Author heuristic

@@ -79,9 +79,15 @@ struct PaperList: View {
         } rows: {
             ForEach(sorted) { p in
                 TableRow(p)
-                    .contextMenu {
-                        rowMenu(for: p)
-                    }
+            }
+        }
+        .contextMenu(forSelectionType: String.self) { ids in
+            if let id = ids.first, let p = store.papers.first(where: { $0.id == id }) {
+                rowMenu(for: p)
+            }
+        } primaryAction: { ids in
+            if let id = ids.first, let p = store.papers.first(where: { $0.id == id }) {
+                store.openInPreview(p)
             }
         }
         .searchable(text: $searchText, placement: .toolbar, prompt: "Search title, authors, tags")

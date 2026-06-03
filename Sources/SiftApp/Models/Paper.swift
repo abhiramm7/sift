@@ -14,6 +14,10 @@ struct AutoMeta: Codable, Hashable {
     var claims: [String]?
     var key_terms: [String]?
     var code_links: [CodeLink]?
+    /// LLM-picked subject-area folder. Single human-readable name (e.g.
+    /// "Machine Learning"). Reuses an existing folder when one fits; the LLM
+    /// only invents a new folder when none does.
+    var folder: String?
 }
 
 enum PaperKind: String, Codable, CaseIterable, Hashable {

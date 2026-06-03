@@ -8,6 +8,7 @@ enum LibraryFilter: Hashable {
     case highlyRated    // rating >= 4
     case kind(PaperKind)
     case tag(String)
+    case folder(String)
 }
 
 struct ContentView: View {
@@ -222,6 +223,11 @@ struct ContentView: View {
             let key = t.lowercased()
             base = store.papers.filter { paper in
                 paper.allTags.contains { $0.lowercased() == key }
+            }
+        case .folder(let f):
+            let key = f.lowercased()
+            base = store.papers.filter { paper in
+                (paper.auto?.folder ?? "").lowercased() == key
             }
         }
         guard !searchText.isEmpty else { return base }

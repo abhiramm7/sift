@@ -36,6 +36,16 @@ struct Sidebar: View {
                 }
             }
 
+            if !store.allFolders.isEmpty {
+                Section("Folders") {
+                    ForEach(store.allFolders, id: \.folder) { entry in
+                        Label(entry.folder, systemImage: "folder")
+                            .badge(entry.count)
+                            .tag(LibraryFilter.folder(entry.folder))
+                    }
+                }
+            }
+
             if !store.allTags.isEmpty {
                 Section {
                     if showAllTags {

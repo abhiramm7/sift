@@ -123,6 +123,31 @@ final class LibraryStore: ObservableObject {
             .sorted { $0.count > $1.count || ($0.count == $1.count && $0.tag < $1.tag) }
     }
 
+    /// All unique LLM-assigned folders across the library, with paper counts.
+    /// Folders are case-folded for uniqueness; the displayed name is the most
+    /// common spelling among papers that share that key.
+    var allFolders: [(folder: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        var displays: [String: [String: Int]] = [:]  // key -> {spelling -> count}
+        for p in papers {
+            guard let f = p.auto?.folder?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !f.isEmpty else { continue }
+            let key = f.lowercased()
+            counts[key, default: 0] += 1
+            displays[key, default: [:]][f, default: 0] += 1
+        }
+        return counts.map { (key, count) -> (folder: String, count: Int) in
+            let display = displays[key]?.max(by: { $0.value < $1.value })?.key ?? key
+            return (display, count)
+        }
+        .sorted { $0.count > $1.count || ($0.count == $1.count && $0.folder < $1.folder) }
+    }
+
+    /// Folder names in their current canonical spelling, for the LLM prompt.
+    var folderVocabulary: [String] {
+        allFolders.map { $0.folder }
+    }
+
     func openInPreview(_ paper: Paper) {
         let url = config.pdfURL(paper.id)
         guard FileManager.default.fileExists(atPath: url.path) else {
@@ -384,13 +409,30 @@ final class LibraryStore: ObservableObject {
         return out
     }
 
-    /// True if the paper still needs LLM work: tags, title, authors, or summary missing/bad.
+    /// True if the paper still needs LLM work: tags, title, authors, summary,
+    /// or folder missing/bad.
     func paperNeedsTagging(_ p: Paper) -> Bool {
         let noTags = p.auto?.tags?.isEmpty ?? true
         let badTitle = LLMTagger.isLikelyBadTitle(p.title)
         let badAuthors = LLMTagger.areLikelyBadAuthors(p.authors)
         let noSummary = (loadSummary(p) ?? "").isEmpty
-        return noTags || badTitle || badAuthors || noSummary
+        let noFolder = (p.auto?.folder?.isEmpty ?? true)
+        return noTags || badTitle || badAuthors || noSummary || noFolder
+    }
+
+    /// Set the paper's folder (LLM-assigned, but also user-editable from the UI).
+    /// Pass nil to clear.
+    func setFolder(_ folder: String?, for id: String) {
+        let cleaned = folder?.trimmingCharacters(in: .whitespacesAndNewlines)
+        updateMetadata(id: id) { obj in
+            var auto = (obj["auto"] as? [String: Any]) ?? [:]
+            if let f = cleaned, !f.isEmpty {
+                auto["folder"] = f
+            } else {
+                auto.removeValue(forKey: "folder")
+            }
+            obj["auto"] = auto
+        }
     }
 
     /// Tag every paper that's missing tags / title / authors / summary. Runs
@@ -473,9 +515,14 @@ final class LibraryStore: ObservableObject {
                       let existing = auto["tags"] as? [String] else { return false }
                 return !existing.isEmpty
             }()
+            let hasFolder: Bool = {
+                guard let auto = obj["auto"] as? [String: Any],
+                      let f = auto["folder"] as? String else { return false }
+                return !f.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }()
             let titleOK = !LLMTagger.isLikelyBadTitle(existingTitle)
             let authorsOK = !LLMTagger.areLikelyBadAuthors(existingAuthors)
-            if hasTags && titleOK && authorsOK && hasSummary { return }
+            if hasTags && titleOK && authorsOK && hasSummary && hasFolder { return }
         }
 
         // Provider must be resolved on the main actor (reads model prefs).
@@ -498,11 +545,18 @@ final class LibraryStore: ObservableObject {
         }
         // Pre-rendered vocab passes to the LLM so it prefers existing tags.
         let vocabPrompt = tagStore.promptVocabulary(maxTags: 80)
+        // Folder vocab — snapshot here on the main actor so the detached Task
+        // can use it without touching `self`.
+        let existingFolders = folderVocabulary
         let result: Result<LLMTagger.ExtractedInfo, Error> = await Task.detached(priority: .utility) {
             let text = LLMTagger.extractText(from: pdfURL, maxChars: textCap, maxPages: pageCap)
             do {
                 let info = try await LLMTagger.extractInfo(
-                    currentTitle: existingTitle, text: text, vocabulary: vocabPrompt, using: provider)
+                    currentTitle: existingTitle,
+                    text: text,
+                    vocabulary: vocabPrompt,
+                    existingFolders: existingFolders,
+                    using: provider)
                 return .success(info)
             } catch {
                 return .failure(error)
@@ -523,6 +577,11 @@ final class LibraryStore: ObservableObject {
             canon.topics = tagStore.canonicalize(info.topics)
             canon.applicationAreas = tagStore.canonicalize(info.applicationAreas)
             canon.methods = tagStore.canonicalize(info.methods)
+            // Case-insensitive snap on folder: prevents "Machine Learning" /
+            // "machine learning" duplicates.
+            if let f = canon.folder {
+                canon.folder = LLMTagger.canonicalizeFolder(f, against: existingFolders)
+            }
 
             // Decide whether to overwrite the title: only if the existing one
             // looks bad AND the LLM's suggestion looks plausible.
@@ -576,6 +635,11 @@ final class LibraryStore: ObservableObject {
         auto["methods"] = info.methods
         // Keep auto.tags as the flat union — used by sidebar tag list + search fallback.
         auto["tags"] = info.union
+        // Only overwrite folder when the LLM produced one — don't clobber a
+        // user-edited folder if the LLM (e.g. small ollama model) skipped it.
+        if let f = info.folder, !f.isEmpty {
+            auto["folder"] = f
+        }
         obj["auto"] = auto
         if let newTitle = titleUpdate {
             obj["title"] = newTitle
