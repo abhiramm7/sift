@@ -17,9 +17,10 @@ struct Sidebar: View {
     @State private var showConsolidateAuthors: Bool = false
     @State private var showConsolidateTags: Bool = false
 
-    // Inline rename / remove flows for a folder picked from the right-click menu.
-    @State private var renameFolderTarget: String? = nil
-    @State private var renameFolderDraft: String = ""
+    // Inline remove confirmation for a folder picked from the right-click menu.
+    // Rename intentionally lives only in FolderManagementSheet — having two
+    // rename surfaces (one modal alert, one inline sheet) is the kind of
+    // duplication that ages badly.
     @State private var removeFolderTarget: String? = nil
 
     private let initialTagCount = 40
@@ -37,15 +38,6 @@ struct Sidebar: View {
             .sheet(isPresented: $showConsolidateTags) {
                 ConsolidateTagsSheet().environmentObject(store)
             }
-            .alert(
-                "Rename folder",
-                isPresented: Binding(
-                    get: { renameFolderTarget != nil },
-                    set: { if !$0 { renameFolderTarget = nil } }
-                ),
-                presenting: renameFolderTarget,
-                actions: renameAlertActions,
-                message: renameAlertMessage)
             .alert(
                 "Remove folder?",
                 isPresented: Binding(
@@ -117,7 +109,7 @@ struct Sidebar: View {
         } header: {
             sectionHeaderWithAction(
                 title: "Folders",
-                icon: "ellipsis.circle",
+                icon: "square.and.pencil",
                 enabled: !store.allFolders.isEmpty,
                 helpEnabled: "Manage folders — rename, merge, remove",
                 helpDisabled: "No folders yet — tag papers first.",
@@ -131,16 +123,14 @@ struct Sidebar: View {
             .badge(entry.count)
             .tag(LibraryFilter.folder(entry.folder))
             .contextMenu {
-                Button("Rename folder…") {
-                    renameFolderDraft = entry.folder
-                    renameFolderTarget = entry.folder
+                // Rename happens in the Manage folders sheet — the inline
+                // editor there can see all folders (which matters for merging
+                // by retyping a name) and a TextField alert cannot.
+                Button("Manage folder…") {
+                    showManageFolders = true
                 }
                 Button("Remove folder…", role: .destructive) {
                     removeFolderTarget = entry.folder
-                }
-                Divider()
-                Button("Manage all folders…") {
-                    showManageFolders = true
                 }
             }
     }
@@ -192,12 +182,9 @@ struct Sidebar: View {
         Label(entry.author, systemImage: "person")
             .badge(entry.count)
             .tag(LibraryFilter.author(entry.author))
-            .contextMenu {
-                Button("Consolidate authors…") {
-                    showConsolidateAuthors = true
-                }
-                .disabled(!store.llmProvider.isAvailable)
-            }
+        // No per-entry context menu: "Consolidate authors…" is library-wide,
+        // not scoped to the clicked name. The section-header icon is the
+        // honest affordance for it.
     }
 
     @ViewBuilder
@@ -213,13 +200,13 @@ struct Sidebar: View {
         Button {
             showConsolidateAuthors = true
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image(systemName: "sparkles")
         }
         .buttonStyle(.borderless)
         .disabled(!store.llmProvider.isAvailable || store.allAuthors.count < 4)
         .help(store.llmProvider.isAvailable
               ? "Consolidate duplicate author names with the LLM"
-              : "No LLM provider — see Settings")
+              : "Install Claude Code or Ollama to use this — Settings → Auto-tagging shows the setup hint.")
     }
 
     @ViewBuilder
@@ -269,12 +256,7 @@ struct Sidebar: View {
         Label("#\(entry.tag)", systemImage: "tag")
             .badge(entry.count)
             .tag(LibraryFilter.tag(entry.tag))
-            .contextMenu {
-                Button("Consolidate tags…") {
-                    showConsolidateTags = true
-                }
-                .disabled(!store.llmProvider.isAvailable)
-            }
+        // Same reasoning as authorRow: "Consolidate tags…" is library-wide.
     }
 
     @ViewBuilder
@@ -290,35 +272,16 @@ struct Sidebar: View {
         Button {
             showConsolidateTags = true
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image(systemName: "sparkles")
         }
         .buttonStyle(.borderless)
         .disabled(!store.llmProvider.isAvailable || store.allTags.count < 4)
         .help(store.llmProvider.isAvailable
-              ? "Consolidate duplicate tags with the LLM"
-              : "No LLM provider — see Settings")
+              ? "Consolidate near-duplicate tags with the LLM"
+              : "Install Claude Code or Ollama to use this — Settings → Auto-tagging shows the setup hint.")
     }
 
     // MARK: - Alerts
-
-    @ViewBuilder
-    private func renameAlertActions(_ name: String) -> some View {
-        TextField("New name", text: $renameFolderDraft)
-        Button("Save") {
-            let cleaned = renameFolderDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !cleaned.isEmpty, cleaned.lowercased() != name.lowercased() {
-                store.renameFolder(from: name, to: cleaned)
-            }
-            renameFolderTarget = nil
-        }
-        Button("Cancel", role: .cancel) {
-            renameFolderTarget = nil
-        }
-    }
-
-    private func renameAlertMessage(_ name: String) -> Text {
-        Text("\"\(name)\" — typing the name of another folder merges them.")
-    }
 
     @ViewBuilder
     private func removeAlertActions(_ name: String) -> some View {

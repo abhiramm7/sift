@@ -5,9 +5,6 @@ struct SettingsView: View {
     @EnvironmentObject var store: LibraryStore
 
     @State private var rootPath: String = ""
-    @State private var showConsolidate: Bool = false
-    @State private var showConsolidateAuthors: Bool = false
-    @State private var showManageFolders: Bool = false
 
     var body: some View {
         Form {
@@ -141,55 +138,21 @@ struct SettingsView: View {
                         NSWorkspace.shared.activateFileViewerSelecting([store.tagStore.fileURL])
                     }
                     .disabled(!FileManager.default.fileExists(atPath: store.tagStore.fileURL.path))
-                    Button("Consolidate tags…") {
-                        showConsolidate = true
-                    }
-                    .disabled(!store.llmProvider.isAvailable || total < 4)
-                    .help(store.llmProvider.isAvailable
-                          ? "Ask the LLM to find near-duplicate tags and propose merges"
-                          : "No LLM provider available")
                 }
-                Text("Edit descriptions in tags.json to give the LLM extra semantic context. New tags are added automatically; canonicalization prefers existing tags over near-duplicates.")
+                Text("Edit descriptions in tags.json to give the LLM extra semantic context. New tags are added automatically; canonicalization prefers existing tags over near-duplicates. To consolidate near-duplicate tags, use the sidebar — Tags header icon or right-click a tag.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Section("Folders") {
-                LabeledContent("Folders in library") {
+            Section("Library counts") {
+                LabeledContent("Folders") {
                     Text("\(store.allFolders.count)").foregroundStyle(.secondary).monospacedDigit()
                 }
-                HStack(spacing: 8) {
-                    Spacer()
-                    Button("Manage folders…") {
-                        showManageFolders = true
-                    }
-                    .disabled(store.allFolders.isEmpty)
-                    .help(store.allFolders.isEmpty
-                          ? "No folders yet — tag papers first."
-                          : "Rename, merge, or remove folders library-wide.")
-                }
-                Text("Folder cleanup is manual on purpose — you know whether \"ML\" should become \"Machine Learning\" better than the LLM does. Renaming a folder to match another's name merges them.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section("Authors") {
-                LabeledContent("Distinct authors") {
+                LabeledContent("Authors") {
                     Text("\(store.allAuthors.count)").foregroundStyle(.secondary).monospacedDigit()
                 }
-                HStack(spacing: 8) {
-                    Spacer()
-                    Button("Consolidate authors…") {
-                        showConsolidateAuthors = true
-                    }
-                    .disabled(!store.llmProvider.isAvailable || store.allAuthors.count < 4)
-                    .help(store.llmProvider.isAvailable
-                          ? "Ask the LLM to find duplicate author names (\"J. Smith\" vs \"John Smith\") and propose merges."
-                          : "No LLM provider available")
-                }
-                Text("PDFKit metadata often gives the same person under several spellings. This pass merges the obvious ones; it errs on the side of leaving things alone when ambiguous.")
+                Text("Manage folders and consolidate duplicate authors from the sidebar — click the icon next to each section header, or right-click an entry.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -207,18 +170,6 @@ struct SettingsView: View {
         .onAppear {
             rootPath = store.config.iCloudRoot.path
             Task { await store.refreshLLMProvider() }
-        }
-        .sheet(isPresented: $showConsolidate) {
-            ConsolidateTagsSheet()
-                .environmentObject(store)
-        }
-        .sheet(isPresented: $showConsolidateAuthors) {
-            ConsolidateAuthorsSheet()
-                .environmentObject(store)
-        }
-        .sheet(isPresented: $showManageFolders) {
-            FolderManagementSheet()
-                .environmentObject(store)
         }
     }
 

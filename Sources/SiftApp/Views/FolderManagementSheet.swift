@@ -70,9 +70,9 @@ struct FolderManagementSheet: View {
     }
 
     private func folderRow(_ entry: (folder: String, count: Int)) -> some View {
+        // No leading folder icon: every row in this sheet is a folder.
+        // The icon was visual noise without communicating anything new.
         HStack(spacing: 10) {
-            Image(systemName: "folder")
-                .foregroundStyle(.secondary)
             if editingFolder == entry.folder {
                 TextField("Folder name", text: $editDraft)
                     .textFieldStyle(.roundedBorder)

@@ -65,10 +65,23 @@ database to migrate.
 - **Ollama on localhost:11434** for Sift's optional chat-model tagging path.
   Sift uses `/api/chat` with `think: false` and `num_predict: 1000` to avoid
   reasoning-token runaway on qwen3.5.
-- **Three kinds**: `paper` | `book` | `report`.
+- **Four kinds**: `paper` | `book` | `report` | `poster` (poster added in 0.4.3).
 - **Sift bundle ID**: `net.randomstorms.Sift`. UserDefaults keys are `Sift.*`.
   Notification names are `Sift.*`. Anything still under a `PaperManager.*`
   prefix is legacy and should be migrated when touched.
+- **Folder two-field invariant.** A paper has both `auto.folder` (LLM-assigned)
+  and `user_folder` (user override). `Paper.effectiveFolder` returns
+  `user_folder ?? auto.folder`. The sidebar's *Folders* section, the
+  `LibraryFilter.folder` filter, and `LibraryStore.allFolders` all use
+  `effectiveFolder`. `LibraryStore.renameFolder(from:to:)` updates *both*
+  fields when either matches the source name, so a rename or merge applies
+  uniformly regardless of origin. `LibraryStore.runTagging` only writes
+  `auto.folder`, never `user_folder` — re-running the tagger on a paper with
+  a user override leaves the user's choice intact.
+- **Sidebar owns operations, Settings owns configuration** (0.5.3). Folder
+  management, author consolidation, and tag consolidation are reachable
+  only from the sidebar — section-header icons and per-entry right-click.
+  Settings shows counts and configuration knobs; no operation buttons.
 
 ## Common dev workflows
 
