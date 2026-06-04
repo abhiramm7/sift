@@ -10,6 +10,8 @@ struct ConsolidateAuthorsSheet: View {
     @State private var phase: Phase = .loading
     @State private var proposals: [Proposal] = []
     @State private var errorMessage: String?
+    @State private var progressLabel: String = "Cleaning up author entries…"
+    @State private var junkCleaned: Int = 0
 
     enum Phase { case loading, ready, applying, done }
 
@@ -35,7 +37,7 @@ struct ConsolidateAuthorsSheet: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Consolidate authors")
                 .font(.title3.weight(.semibold))
-            Text("Looks for the same person written under different spellings (\"J. Smith\" vs \"John Smith\", \"Smith, John\" vs \"John Smith\") and proposes merges. Conservative — names that differ in middle initial or could plausibly be different people stay separate.")
+            Text("First strips \"et al.\" entries that snuck in from PDF metadata, then runs the LLM in up to three passes — each pass sees the simulated result of the previous, so subtle duplicates that only emerge after first-round cleanup still get caught.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -50,9 +52,12 @@ struct ConsolidateAuthorsSheet: View {
         case .loading:
             VStack(spacing: 10) {
                 ProgressView()
-                Text("Asking \(store.llmProvider.label)…")
+                Text(progressLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Text("Provider: \(store.llmProvider.label)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .ready, .applying:
@@ -66,14 +71,31 @@ struct ConsolidateAuthorsSheet: View {
                 ContentUnavailableView(
                     "Nothing to consolidate",
                     systemImage: "person.2",
-                    description: Text("The LLM didn't find any duplicate author names. Your author list is already clean."))
+                    description: Text(junkCleaned > 0
+                        ? "Stripped \"et al.\" from \(junkCleaned) paper\(junkCleaned == 1 ? "" : "s"). The LLM found no further duplicates across \(maxPassesLabel)."
+                        : "The LLM found no duplicate author names across \(maxPassesLabel). Your author list is already clean."))
             } else {
-                List {
-                    ForEach($proposals) { $p in
-                        ProposalRow(proposal: $p)
+                VStack(spacing: 0) {
+                    if junkCleaned > 0 {
+                        HStack(spacing: 6) {
+                            Image(systemName: "scissors")
+                                .foregroundStyle(.secondary)
+                            Text("Stripped \"et al.\" from \(junkCleaned) paper\(junkCleaned == 1 ? "" : "s") before running the LLM.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                        Divider()
                     }
+                    List {
+                        ForEach($proposals) { $p in
+                            ProposalRow(proposal: $p)
+                        }
+                    }
+                    .listStyle(.inset)
                 }
-                .listStyle(.inset)
             }
         case .done:
             ContentUnavailableView(
@@ -82,6 +104,12 @@ struct ConsolidateAuthorsSheet: View {
                 description: Text("Authors were merged across the library."))
         }
     }
+
+    private var maxPassesLabel: String {
+        "\(maxPasses) pass\(maxPasses == 1 ? "" : "es")"
+    }
+
+    private let maxPasses = 3
 
     private var footer: some View {
         HStack(spacing: 8) {
@@ -114,9 +142,18 @@ struct ConsolidateAuthorsSheet: View {
     private func kickoff() {
         phase = .loading
         errorMessage = nil
+        progressLabel = "Cleaning up author entries…"
         Task {
+            // Step 1: strip "et al." junk from disk. Idempotent, fast.
+            let cleaned = await MainActor.run { store.cleanupAuthorJunk() }
+            await MainActor.run { self.junkCleaned = cleaned }
+
+            // Step 2: multi-pass LLM consolidation. Each pass sees the
+            // simulated result of the previous so subtle duplicates surface.
             do {
-                let merges = try await store.proposeAuthorMerges()
+                let merges = try await store.proposeAuthorMergesThorough(maxPasses: maxPasses) { pass, total in
+                    self.progressLabel = "LLM pass \(pass) of \(total)…"
+                }
                 let wrapped = merges.map { Proposal(id: UUID(), merge: $0, approved: true) }
                 await MainActor.run {
                     self.proposals = wrapped

@@ -754,9 +754,11 @@ enum LLMTagger {
                     .components(separatedBy: CharacterSet(charactersIn: ",;&"))
                     .flatMap { $0.components(separatedBy: " and ") }
             }
-            let cleaned = raw
+            // Strip "et al." from any entry the LLM emits as a literal author.
+            let sized = raw
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty && $0.count <= 120 }
+            let cleaned = cleanAuthorList(sized)
             return cleaned.isEmpty ? nil : Array(cleaned.prefix(20))
         }()
         let summary: String? = {
@@ -822,6 +824,68 @@ enum LLMTagger {
         "adobe acrobat", "preview", "author", "authors", "unknown", "anonymous",
         "untitled", "pdfcreator", "pdftk", "lualatex", "xelatex", "ghostscript",
     ]
+
+    /// "et al." and friends — these slip through PDFKit metadata as literal
+    /// author entries ("Smith et al."), and the LLM occasionally emits one too.
+    /// Lower-cased, punctuation-stripped form so the matcher is robust.
+    private static let etAlMarkers: Set<String> = [
+        "et al", "et. al", "et alia", "et alii", "and others", "others",
+    ]
+
+    /// True if this entry is an "et al." marker rather than a real person's name.
+    /// Used to drop the entry entirely.
+    static func isJunkAuthorEntry(_ name: String) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return true }
+        let normalized = trimmed
+            .lowercased()
+            .trimmingCharacters(in: CharacterSet(charactersIn: ".,;"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return etAlMarkers.contains(normalized)
+    }
+
+    /// Strip a trailing "et al." suffix from a name and return the cleaned form.
+    /// Returns nil if the result is empty, junk, or the original was just a
+    /// marker like "et al." on its own.
+    /// Examples:
+    ///   "John Smith et al." → "John Smith"
+    ///   "John Smith, et al" → "John Smith"
+    ///   "et al."            → nil
+    static func cleanAuthorName(_ raw: String) -> String? {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !s.isEmpty else { return nil }
+        // Strip trailing variants in one regex pass: optional `,` or `;`,
+        // optional whitespace, then "et al" / "et. al" / "and others"
+        // / "et alia" / "et alii", with optional trailing period.
+        let suffixes = [
+            #"[,;]?\s*et\.?\s*al(ia|ii)?\.?$"#,
+            #"[,;]?\s*and\s+others\.?$"#,
+        ]
+        for pattern in suffixes {
+            if let range = s.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
+                s = String(s[..<range.lowerBound])
+            }
+        }
+        s = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        s = s.trimmingCharacters(in: CharacterSet(charactersIn: ".,;"))
+        s = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.isEmpty || isJunkAuthorEntry(s) { return nil }
+        return s
+    }
+
+    /// Clean a list of author names: strip "et al." junk, drop empties, dedup
+    /// case-insensitively while preserving first-seen casing.
+    static func cleanAuthorList(_ raw: [String]) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+        for name in raw {
+            guard let cleaned = cleanAuthorName(name) else { continue }
+            if seen.insert(cleaned.lowercased()).inserted {
+                out.append(cleaned)
+            }
+        }
+        return out
+    }
 
     /// True if the existing authors list looks like PDFKit metadata garbage
     /// (compile-tool names, single fragment, all numbers, etc.) and should be

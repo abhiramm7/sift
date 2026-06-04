@@ -217,15 +217,19 @@ final class IngestService {
     }
 
     /// "Smith, John; Doe, Jane" or "John Smith and Jane Doe" → ["John Smith", "Jane Doe"]
+    /// Strips trailing "et al." from each entry and drops entries that ARE the
+    /// "et al." marker — PDFKit happily emits "Smith et al." as the authors
+    /// field, which we'd otherwise carry through as a literal author entry.
     static func parseAuthors(_ raw: String) -> [String] {
         let separators: [String] = [";", " and ", "&", ","]
         var parts: [String] = [raw]
         for sep in separators {
             parts = parts.flatMap { $0.components(separatedBy: sep) }
         }
-        return parts
+        let sized = parts
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty && $0.count < 200 }
+        return LLMTagger.cleanAuthorList(sized)
     }
 
     /// Recognize: 2401.12345, https://arxiv.org/abs/2401.12345v2, /pdf/2401.12345.pdf,

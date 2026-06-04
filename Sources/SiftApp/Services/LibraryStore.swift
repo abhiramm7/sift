@@ -154,14 +154,15 @@ final class LibraryStore: ObservableObject {
     /// All authors across the library with paper counts. Every author across
     /// every position counts — so a paper by ["Abhiram", "Branko"] contributes
     /// one to each name. Case-folded dedup; the displayed spelling is the
-    /// most common one for that case-folded key.
+    /// most common one for that case-folded key. "et al." junk is stripped
+    /// at display time too, so libraries with dirty data still see clean
+    /// sidebars before the consolidate pass runs.
     var allAuthors: [(author: String, count: Int)] {
         var counts: [String: Int] = [:]
         var displays: [String: [String: Int]] = [:]
         for p in papers {
             for a in p.authors {
-                let cleaned = a.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !cleaned.isEmpty else { continue }
+                guard let cleaned = LLMTagger.cleanAuthorName(a) else { continue }
                 let key = cleaned.lowercased()
                 counts[key, default: 0] += 1
                 displays[key, default: [:]][cleaned, default: 0] += 1
@@ -430,6 +431,82 @@ final class LibraryStore: ObservableObject {
         guard provider.isAvailable else { throw LLMTagger.TaggerError.noProvider }
         let authors = allAuthors.map { (name: $0.author, count: $0.count) }
         return try await LLMTagger.proposeAuthorMerges(authors: authors, using: provider)
+    }
+
+    /// Strip "et al." junk from every paper's `authors[]` on disk. Idempotent:
+    /// only rewrites a paper if its cleaned list differs from what's stored.
+    /// Returns the number of papers actually modified.
+    @discardableResult
+    func cleanupAuthorJunk() -> Int {
+        var modified = 0
+        for p in papers {
+            let cleaned = LLMTagger.cleanAuthorList(p.authors)
+            guard cleaned != p.authors else { continue }
+            modified += 1
+            updateMetadata(id: p.id) { obj in
+                obj["authors"] = cleaned
+            }
+        }
+        return modified
+    }
+
+    /// Multi-pass LLM author consolidation. Each pass sees the simulated
+    /// result of the previous, so the LLM can find merges that only become
+    /// obvious after first-round duplicates collapse. Stops when a pass
+    /// returns nothing new or `maxPasses` is reached.
+    func proposeAuthorMergesThorough(
+        maxPasses: Int = 3,
+        onPass: @MainActor @escaping (Int, Int) -> Void
+    ) async throws -> [LLMTagger.AuthorMergeProposal] {
+        let (provider, _) = await LLMTagger.detectProvider(
+            llmPreference, claudeModel: claudeModel, ollamaModel: ollamaModel)
+        guard provider.isAvailable else { throw LLMTagger.TaggerError.noProvider }
+
+        var simulated = allAuthors.map { (name: $0.author, count: $0.count) }
+        var combined: [LLMTagger.AuthorMergeProposal] = []
+        var seenTargets = Set<String>()  // dedup proposals across passes
+
+        for pass in 1...maxPasses {
+            await MainActor.run { onPass(pass, maxPasses) }
+            let merges = try await LLMTagger.proposeAuthorMerges(
+                authors: simulated, using: provider)
+            // Drop proposals whose target is already a from→into in combined,
+            // and drop ones identical to an earlier merge.
+            let fresh = merges.filter { m in
+                let key = "\(m.into.lowercased())|\(m.from.map { $0.lowercased() }.sorted().joined(separator: ","))"
+                return seenTargets.insert(key).inserted
+            }
+            if fresh.isEmpty { break }
+            combined.append(contentsOf: fresh)
+            simulated = Self.simulateAuthorMerges(simulated, merges: fresh)
+        }
+        return combined
+    }
+
+    /// Apply merges to an in-memory author list (no disk writes) so the next
+    /// LLM pass sees what would happen if the user approved.
+    nonisolated private static func simulateAuthorMerges(
+        _ authors: [(name: String, count: Int)],
+        merges: [LLMTagger.AuthorMergeProposal]
+    ) -> [(name: String, count: Int)] {
+        var renames: [String: String] = [:]
+        for m in merges {
+            for f in m.from where !f.isEmpty {
+                renames[f.lowercased()] = m.into
+            }
+        }
+        var counts: [String: Int] = [:]
+        var displays: [String: String] = [:]
+        for a in authors {
+            let target = renames[a.name.lowercased()] ?? a.name
+            let key = target.lowercased()
+            counts[key, default: 0] += a.count
+            displays[key] = target
+        }
+        return counts.map { (key, count) in
+            (name: displays[key] ?? key, count: count)
+        }
+        .sorted { $0.count > $1.count || ($0.count == $1.count && $0.name < $1.name) }
     }
 
     /// Apply author merges across every paper's `authors[]`. For each merge,
