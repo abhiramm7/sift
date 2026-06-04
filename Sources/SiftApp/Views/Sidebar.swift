@@ -12,142 +12,359 @@ struct Sidebar: View {
     @AppStorage("Sift.sidebarAuthorsExpanded") private var authorsExpanded: Bool = true
     @AppStorage("Sift.sidebarTagsExpanded") private var tagsExpanded: Bool = true
 
+    // Sheets surfaced from the sidebar itself, not just Settings.
+    @State private var showManageFolders: Bool = false
+    @State private var showConsolidateAuthors: Bool = false
+    @State private var showConsolidateTags: Bool = false
+
+    // Inline rename / remove flows for a folder picked from the right-click menu.
+    @State private var renameFolderTarget: String? = nil
+    @State private var renameFolderDraft: String = ""
+    @State private var removeFolderTarget: String? = nil
+
     private let initialTagCount = 40
     private let initialAuthorCount = 30
 
     var body: some View {
+        listBody
+            .listStyle(.sidebar)
+            .sheet(isPresented: $showManageFolders) {
+                FolderManagementSheet().environmentObject(store)
+            }
+            .sheet(isPresented: $showConsolidateAuthors) {
+                ConsolidateAuthorsSheet().environmentObject(store)
+            }
+            .sheet(isPresented: $showConsolidateTags) {
+                ConsolidateTagsSheet().environmentObject(store)
+            }
+            .alert(
+                "Rename folder",
+                isPresented: Binding(
+                    get: { renameFolderTarget != nil },
+                    set: { if !$0 { renameFolderTarget = nil } }
+                ),
+                presenting: renameFolderTarget,
+                actions: renameAlertActions,
+                message: renameAlertMessage)
+            .alert(
+                "Remove folder?",
+                isPresented: Binding(
+                    get: { removeFolderTarget != nil },
+                    set: { if !$0 { removeFolderTarget = nil } }
+                ),
+                presenting: removeFolderTarget,
+                actions: removeAlertActions,
+                message: removeAlertMessage)
+    }
+
+    private var listBody: some View {
         List(selection: Binding(
             get: { filter },
             set: { if let v = $0 { filter = v } }
         )) {
-            Section("Library") {
-                Label("All", systemImage: "tray.full")
-                    .badge(store.papers.count)
-                    .tag(LibraryFilter.all)
-                Label("Unread", systemImage: "circle.dashed")
-                    .badge(unreadCount)
-                    .tag(LibraryFilter.unread)
-                Label("Saved", systemImage: "bookmark")
-                    .badge(starredCount)
-                    .tag(LibraryFilter.starred)
-                Label("Rated 4+", systemImage: "star.fill")
-                    .badge(highlyRatedCount)
-                    .tag(LibraryFilter.highlyRated)
-            }
+            librarySection
+            kindSection
+            foldersSection
+            authorsSection
+            tagsSection
+        }
+    }
 
-            Section("Kind") {
-                ForEach(PaperKind.allCases, id: \.self) { k in
-                    Label(k.label + "s", systemImage: k.symbol)
-                        .badge(store.papers.filter { $0.kind == k }.count)
-                        .tag(LibraryFilter.kind(k))
-                }
-            }
+    // MARK: - Sections
 
-            Section("Folders") {
-                if store.allFolders.isEmpty {
-                    // Always show the section so first-time users know it's
-                    // coming — otherwise a Folders section appearing later
-                    // feels like a glitch (general-user agent caught this).
-                    Text("Tag papers to fill this in.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .padding(.vertical, 2)
-                } else {
-                    ForEach(store.allFolders, id: \.folder) { entry in
-                        Label(entry.folder, systemImage: "folder")
-                            .badge(entry.count)
-                            .tag(LibraryFilter.folder(entry.folder))
-                    }
-                }
-            }
+    @ViewBuilder
+    private var librarySection: some View {
+        Section("Library") {
+            Label("All", systemImage: "tray.full")
+                .badge(store.papers.count)
+                .tag(LibraryFilter.all)
+            Label("Unread", systemImage: "circle.dashed")
+                .badge(unreadCount)
+                .tag(LibraryFilter.unread)
+            Label("Saved", systemImage: "bookmark")
+                .badge(starredCount)
+                .tag(LibraryFilter.starred)
+            Label("Rated 4+", systemImage: "star.fill")
+                .badge(highlyRatedCount)
+                .tag(LibraryFilter.highlyRated)
+        }
+    }
 
-            if !store.allAuthors.isEmpty {
-                Section {
-                    if authorsExpanded {
-                        if showAllAuthors {
-                            TextField("Filter authors", text: $authorSearch)
-                                .textFieldStyle(.roundedBorder)
-                                .padding(.vertical, 2)
-                        }
-                        ForEach(filteredAuthors, id: \.author) { entry in
-                            Label(entry.author, systemImage: "person")
-                                .badge(entry.count)
-                                .tag(LibraryFilter.author(entry.author))
-                        }
-                        if !showAllAuthors, store.allAuthors.count > initialAuthorCount {
-                            Button("Show all \(store.allAuthors.count) authors…") {
-                                showAllAuthors = true
-                            }
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
-                        }
-                    }
-                } header: {
-                    collapsibleHeader(
-                        title: "Authors",
-                        count: store.allAuthors.count,
-                        isExpanded: $authorsExpanded,
-                        trailing: {
-                            if authorsExpanded && showAllAuthors {
-                                Button("Show top \(initialAuthorCount)") {
-                                    showAllAuthors = false
-                                    authorSearch = ""
-                                }
-                                .buttonStyle(.borderless)
-                                .font(.caption)
-                            }
-                        })
-                }
-            }
-
-            if !store.allTags.isEmpty {
-                Section {
-                    if tagsExpanded {
-                        if showAllTags {
-                            TextField("Filter tags", text: $tagSearch)
-                                .textFieldStyle(.roundedBorder)
-                                .padding(.vertical, 2)
-                        }
-                        ForEach(filteredTags, id: \.tag) { entry in
-                            Label("#\(entry.tag)", systemImage: "tag")
-                                .badge(entry.count)
-                                .tag(LibraryFilter.tag(entry.tag))
-                        }
-                        if !showAllTags, store.allTags.count > initialTagCount {
-                            Button("Show all \(store.allTags.count) tags…") {
-                                showAllTags = true
-                            }
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
-                        }
-                    }
-                } header: {
-                    collapsibleHeader(
-                        title: "Tags",
-                        count: store.allTags.count,
-                        isExpanded: $tagsExpanded,
-                        trailing: {
-                            if tagsExpanded && showAllTags {
-                                Button("Show top \(initialTagCount)") {
-                                    showAllTags = false
-                                    tagSearch = ""
-                                }
-                                .buttonStyle(.borderless)
-                                .font(.caption)
-                            }
-                        })
-                }
+    @ViewBuilder
+    private var kindSection: some View {
+        Section("Kind") {
+            ForEach(PaperKind.allCases, id: \.self) { k in
+                Label(k.label + "s", systemImage: k.symbol)
+                    .badge(store.papers.filter { $0.kind == k }.count)
+                    .tag(LibraryFilter.kind(k))
             }
         }
-        .listStyle(.sidebar)
+    }
+
+    @ViewBuilder
+    private var foldersSection: some View {
+        Section {
+            if store.allFolders.isEmpty {
+                Text("Tag papers to fill this in.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .padding(.vertical, 2)
+            } else {
+                ForEach(store.allFolders, id: \.folder) { entry in
+                    folderRow(entry)
+                }
+            }
+        } header: {
+            sectionHeaderWithAction(
+                title: "Folders",
+                icon: "ellipsis.circle",
+                enabled: !store.allFolders.isEmpty,
+                helpEnabled: "Manage folders — rename, merge, remove",
+                helpDisabled: "No folders yet — tag papers first.",
+                action: { showManageFolders = true })
+        }
+    }
+
+    @ViewBuilder
+    private func folderRow(_ entry: (folder: String, count: Int)) -> some View {
+        Label(entry.folder, systemImage: "folder")
+            .badge(entry.count)
+            .tag(LibraryFilter.folder(entry.folder))
+            .contextMenu {
+                Button("Rename folder…") {
+                    renameFolderDraft = entry.folder
+                    renameFolderTarget = entry.folder
+                }
+                Button("Remove folder…", role: .destructive) {
+                    removeFolderTarget = entry.folder
+                }
+                Divider()
+                Button("Manage all folders…") {
+                    showManageFolders = true
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var authorsSection: some View {
+        Section {
+            if authorsExpanded {
+                authorsBody
+            }
+        } header: {
+            collapsibleHeader(
+                title: "Authors",
+                count: store.allAuthors.count,
+                isExpanded: $authorsExpanded,
+                trailing: { authorsHeaderTrailing })
+        }
+    }
+
+    @ViewBuilder
+    private var authorsBody: some View {
+        if showAllAuthors {
+            TextField("Filter authors", text: $authorSearch)
+                .textFieldStyle(.roundedBorder)
+                .padding(.vertical, 2)
+        }
+        if store.allAuthors.isEmpty {
+            Text("Add some papers to fill this in.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .padding(.vertical, 2)
+        } else {
+            ForEach(filteredAuthors, id: \.author) { entry in
+                authorRow(entry)
+            }
+            if !showAllAuthors, store.allAuthors.count > initialAuthorCount {
+                Button("Show all \(store.allAuthors.count) authors…") {
+                    showAllAuthors = true
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .font(.caption)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func authorRow(_ entry: (author: String, count: Int)) -> some View {
+        Label(entry.author, systemImage: "person")
+            .badge(entry.count)
+            .tag(LibraryFilter.author(entry.author))
+            .contextMenu {
+                Button("Consolidate authors…") {
+                    showConsolidateAuthors = true
+                }
+                .disabled(!store.llmProvider.isAvailable)
+            }
+    }
+
+    @ViewBuilder
+    private var authorsHeaderTrailing: some View {
+        if authorsExpanded && showAllAuthors {
+            Button("Show top \(initialAuthorCount)") {
+                showAllAuthors = false
+                authorSearch = ""
+            }
+            .buttonStyle(.borderless)
+            .font(.caption)
+        }
+        Button {
+            showConsolidateAuthors = true
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .buttonStyle(.borderless)
+        .disabled(!store.llmProvider.isAvailable || store.allAuthors.count < 4)
+        .help(store.llmProvider.isAvailable
+              ? "Consolidate duplicate author names with the LLM"
+              : "No LLM provider — see Settings")
+    }
+
+    @ViewBuilder
+    private var tagsSection: some View {
+        Section {
+            if tagsExpanded {
+                tagsBody
+            }
+        } header: {
+            collapsibleHeader(
+                title: "Tags",
+                count: store.allTags.count,
+                isExpanded: $tagsExpanded,
+                trailing: { tagsHeaderTrailing })
+        }
+    }
+
+    @ViewBuilder
+    private var tagsBody: some View {
+        if showAllTags {
+            TextField("Filter tags", text: $tagSearch)
+                .textFieldStyle(.roundedBorder)
+                .padding(.vertical, 2)
+        }
+        if store.allTags.isEmpty {
+            Text("Tag papers to fill this in.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .padding(.vertical, 2)
+        } else {
+            ForEach(filteredTags, id: \.tag) { entry in
+                tagRow(entry)
+            }
+            if !showAllTags, store.allTags.count > initialTagCount {
+                Button("Show all \(store.allTags.count) tags…") {
+                    showAllTags = true
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .font(.caption)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tagRow(_ entry: (tag: String, count: Int)) -> some View {
+        Label("#\(entry.tag)", systemImage: "tag")
+            .badge(entry.count)
+            .tag(LibraryFilter.tag(entry.tag))
+            .contextMenu {
+                Button("Consolidate tags…") {
+                    showConsolidateTags = true
+                }
+                .disabled(!store.llmProvider.isAvailable)
+            }
+    }
+
+    @ViewBuilder
+    private var tagsHeaderTrailing: some View {
+        if tagsExpanded && showAllTags {
+            Button("Show top \(initialTagCount)") {
+                showAllTags = false
+                tagSearch = ""
+            }
+            .buttonStyle(.borderless)
+            .font(.caption)
+        }
+        Button {
+            showConsolidateTags = true
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .buttonStyle(.borderless)
+        .disabled(!store.llmProvider.isAvailable || store.allTags.count < 4)
+        .help(store.llmProvider.isAvailable
+              ? "Consolidate duplicate tags with the LLM"
+              : "No LLM provider — see Settings")
+    }
+
+    // MARK: - Alerts
+
+    @ViewBuilder
+    private func renameAlertActions(_ name: String) -> some View {
+        TextField("New name", text: $renameFolderDraft)
+        Button("Save") {
+            let cleaned = renameFolderDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !cleaned.isEmpty, cleaned.lowercased() != name.lowercased() {
+                store.renameFolder(from: name, to: cleaned)
+            }
+            renameFolderTarget = nil
+        }
+        Button("Cancel", role: .cancel) {
+            renameFolderTarget = nil
+        }
+    }
+
+    private func renameAlertMessage(_ name: String) -> Text {
+        Text("\"\(name)\" — typing the name of another folder merges them.")
+    }
+
+    @ViewBuilder
+    private func removeAlertActions(_ name: String) -> some View {
+        Button("Remove", role: .destructive) {
+            store.renameFolder(from: name, to: nil)
+            removeFolderTarget = nil
+        }
+        Button("Cancel", role: .cancel) {
+            removeFolderTarget = nil
+        }
+    }
+
+    private func removeAlertMessage(_ name: String) -> Text {
+        let count = store.allFolders.first(where: { $0.folder == name })?.count ?? 0
+        return Text("\"\(name)\" will be cleared from \(count) paper\(count == 1 ? "" : "s"). The papers stay; they just won't have a folder.")
+    }
+
+    // MARK: - Section header helpers
+
+    /// Plain (non-collapsible) section header with a trailing action icon.
+    /// Used for the Folders section, which always stays expanded.
+    @ViewBuilder
+    private func sectionHeaderWithAction(
+        title: String,
+        icon: String,
+        enabled: Bool,
+        helpEnabled: String,
+        helpDisabled: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 4) {
+            Text(title)
+            Spacer()
+            Button(action: action) {
+                Image(systemName: icon)
+            }
+            .buttonStyle(.borderless)
+            .disabled(!enabled)
+            .help(enabled ? helpEnabled : helpDisabled)
+        }
     }
 
     /// Standard collapsible-section header: chevron + title; the whole header
     /// is a button that toggles `isExpanded`. When collapsed, shows the count
     /// so the user knows what's hidden. Optional trailing view sits on the
-    /// right (e.g. the "Show top N" toggle when fully expanded).
+    /// right (e.g. the "Show top N" toggle and the ⋯ action button).
     @ViewBuilder
     private func collapsibleHeader<Trailing: View>(
         title: String,
@@ -180,6 +397,8 @@ struct Sidebar: View {
             trailing()
         }
     }
+
+    // MARK: - Filtered lists
 
     private var filteredAuthors: [(author: String, count: Int)] {
         let all = store.allAuthors
