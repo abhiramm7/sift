@@ -40,10 +40,10 @@ struct FolderManagementSheet: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Manage folders")
                 .font(.title3.weight(.semibold))
-            Text("Rename a folder to fix what the LLM picked, or rename one folder to match another to merge them. Removing a folder clears it from those papers without deleting the papers themselves.")
+            Text("Click the pencil to rename a folder. **Type the name of another folder to merge them** — say, retype \"ML\" as \"Machine Learning\" and both folders collapse into one. The trash icon clears a folder from its papers (the papers stay).")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

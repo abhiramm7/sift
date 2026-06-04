@@ -72,7 +72,12 @@ struct ConsolidateTagsSheet: View {
                 VStack(spacing: 0) {
                     List {
                         ForEach($proposals) { $p in
-                            ProposalRow(proposal: $p)
+                            MergeProposalRow(
+                                from: p.merge.from,
+                                into: p.merge.into,
+                                reason: p.merge.reason,
+                                approved: $p.approved,
+                                prefix: "#")
                         }
                     }
                     .listStyle(.inset)
@@ -172,40 +177,4 @@ struct ConsolidateTagsSheet: View {
     }
 }
 
-private struct ProposalRow: View {
-    @Binding var proposal: ConsolidateTagsSheet.Proposal
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .top, spacing: 8) {
-                Toggle("", isOn: $proposal.approved)
-                    .labelsHidden()
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        ForEach(proposal.merge.from, id: \.self) { tag in
-                            Text("#\(tag)")
-                                .strikethrough()
-                                .foregroundStyle(.secondary)
-                                .font(.callout)
-                        }
-                        Image(systemName: "arrow.right")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                        Text("#\(proposal.merge.into)")
-                            .foregroundStyle(.primary)
-                            .fontWeight(.medium)
-                            .font(.callout)
-                    }
-                    if !proposal.merge.reason.isEmpty {
-                        Text(proposal.merge.reason)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                Spacer()
-            }
-        }
-        .padding(.vertical, 2)
-    }
-}
+// Row UI moved to MergeProposalRow (shared with ConsolidateAuthorsSheet).

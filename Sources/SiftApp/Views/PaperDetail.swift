@@ -145,15 +145,21 @@ struct PaperDetail: View {
                 .help("Clear the manual override and use the LLM's suggestion (\(paper.auto?.folder ?? "none yet"))")
             }
         } label: {
-            Label(effective ?? "No folder", systemImage: "folder")
-                .foregroundStyle(.secondary)
-                .font(.caption)
+            // Distinct symbol when the user has overridden the LLM's pick — at a
+            // glance you can tell which folder assignments survive a re-extract
+            // and which would shift.
+            Label(
+                effective ?? "No folder",
+                systemImage: hasUserOverride ? "folder.badge.person.crop" : "folder"
+            )
+            .foregroundStyle(.secondary)
+            .font(.caption)
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
         .help(hasUserOverride
-              ? "Folder (manually set). Suggested: \(paper.auto?.folder ?? "none yet")."
-              : "Folder (auto-assigned). Pick to override.")
+              ? "Folder manually pinned to \"\(effective ?? "?")\". LLM suggested: \(paper.auto?.folder ?? "none yet"). Re-extract won't change this."
+              : "Folder auto-assigned by the LLM. Pick to override.")
         .sheet(isPresented: $showNewFolderSheet) {
             newFolderSheet
         }
