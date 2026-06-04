@@ -1,0 +1,179 @@
+import SwiftUI
+
+/// Sheet that runs `LibraryStore.proposeAuthorMerges()`, displays the LLM-
+/// proposed merges ("J. Smith" → "John Smith", "Smith, John" → "John Smith"),
+/// lets the user check/uncheck each one, then applies them.
+struct ConsolidateAuthorsSheet: View {
+    @EnvironmentObject var store: LibraryStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var phase: Phase = .loading
+    @State private var proposals: [Proposal] = []
+    @State private var errorMessage: String?
+
+    enum Phase { case loading, ready, applying, done }
+
+    struct Proposal: Identifiable {
+        let id: UUID
+        var merge: LLMTagger.AuthorMergeProposal
+        var approved: Bool
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Divider()
+            content
+            Divider()
+            footer
+        }
+        .frame(minWidth: 520, idealWidth: 580, minHeight: 360, idealHeight: 520)
+        .onAppear(perform: kickoff)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Consolidate authors")
+                .font(.title3.weight(.semibold))
+            Text("Looks for the same person written under different spellings (\"J. Smith\" vs \"John Smith\", \"Smith, John\" vs \"John Smith\") and proposes merges. Conservative — names that differ in middle initial or could plausibly be different people stay separate.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch phase {
+        case .loading:
+            VStack(spacing: 10) {
+                ProgressView()
+                Text("Asking \(store.llmProvider.label)…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .ready, .applying:
+            if let err = errorMessage {
+                ScrollView {
+                    Text(err)
+                        .foregroundStyle(.red)
+                        .padding()
+                }
+            } else if proposals.isEmpty {
+                ContentUnavailableView(
+                    "Nothing to consolidate",
+                    systemImage: "person.2",
+                    description: Text("The LLM didn't find any duplicate author names. Your author list is already clean."))
+            } else {
+                List {
+                    ForEach($proposals) { $p in
+                        ProposalRow(proposal: $p)
+                    }
+                }
+                .listStyle(.inset)
+            }
+        case .done:
+            ContentUnavailableView(
+                "Done",
+                systemImage: "checkmark.seal",
+                description: Text("Authors were merged across the library."))
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 8) {
+            Spacer()
+            Button("Cancel") { dismiss() }
+                .keyboardShortcut(.cancelAction)
+                .disabled(phase == .applying)
+            if phase == .ready, !proposals.isEmpty {
+                Button(applyLabel) { apply() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(selectedCount == 0)
+            } else if phase == .done {
+                Button("Close") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    private var selectedCount: Int { proposals.filter { $0.approved }.count }
+
+    private var applyLabel: String {
+        let n = selectedCount
+        return n == 1 ? "Apply 1 merge" : "Apply \(n) merges"
+    }
+
+    private func kickoff() {
+        phase = .loading
+        errorMessage = nil
+        Task {
+            do {
+                let merges = try await store.proposeAuthorMerges()
+                let wrapped = merges.map { Proposal(id: UUID(), merge: $0, approved: true) }
+                await MainActor.run {
+                    self.proposals = wrapped
+                    self.phase = .ready
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                    self.phase = .ready
+                }
+            }
+        }
+    }
+
+    private func apply() {
+        let approved = proposals.filter { $0.approved }.map { $0.merge }
+        guard !approved.isEmpty else { return }
+        phase = .applying
+        Task {
+            store.applyAuthorMerges(approved)
+            await MainActor.run { self.phase = .done }
+        }
+    }
+}
+
+private struct ProposalRow: View {
+    @Binding var proposal: ConsolidateAuthorsSheet.Proposal
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Toggle("", isOn: $proposal.approved)
+                .labelsHidden()
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    ForEach(proposal.merge.from, id: \.self) { name in
+                        Text(name)
+                            .strikethrough()
+                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                    }
+                    Image(systemName: "arrow.right")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Text(proposal.merge.into)
+                        .foregroundStyle(.primary)
+                        .fontWeight(.medium)
+                        .font(.callout)
+                }
+                if !proposal.merge.reason.isEmpty {
+                    Text(proposal.merge.reason)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+}

@@ -91,6 +91,17 @@ enum LLMTagger {
         var reason: String
     }
 
+    /// One proposed author-name merge from the consolidate-authors pass.
+    /// Same shape as TagMergeProposal but kept as a separate type because
+    /// authors are case-sensitive (we don't lowercase "John Smith") and the
+    /// data semantics differ.
+    struct AuthorMergeProposal: Identifiable, Hashable {
+        let id = UUID()
+        var from: [String]
+        var into: String
+        var reason: String
+    }
+
     /// User preference for which provider to use.
     enum Preference: String, CaseIterable, Identifiable {
         case auto
@@ -470,6 +481,102 @@ enum LLMTagger {
             out.append(TagMergeProposal(from: filtered, into: into, reason: reason))
         }
         return out
+    }
+
+    // MARK: - Consolidate authors
+
+    /// Prompt asking the LLM to find author-name duplicates ("J. Smith" vs
+    /// "John Smith", "Smith, John" vs "John Smith", diacritic variants) and
+    /// propose merges. Conservative — middle initials and full names that
+    /// don't share a clear abbreviation/reorder relationship stay separate.
+    static func buildAuthorConsolidatePrompt(authors: [(name: String, count: Int)]) -> String {
+        let lines = authors.map { "- \($0.name) (\($0.count))" }
+        return """
+        You are consolidating author names in a personal research-paper library. Below is the current author list with paper counts. Find names that are clearly the same person written in different forms and propose merges.
+
+        Rules — be conservative. The cost of a wrong merge (combining two different people) is much higher than the cost of a missed merge.
+        - Only merge when one form is a clear variant of another: abbreviation ("J. Smith" → "John Smith"), reordered surname-first ("Smith, John" → "John Smith"), diacritic or spelling variants of the same name ("José García" / "Jose Garcia"), or trivial capitalisation/punctuation differences.
+        - DO NOT merge two complete names that share only a surname.
+        - DO NOT merge names that differ in middle initial ("John A. Smith" vs "John B. Smith" are different people).
+        - DO NOT collapse "Smith" with "John Smith" — a bare surname could be anyone.
+        - For the "into" target, prefer the most complete spelling (full first name; middle initial if it appears in any variant) and the form that appears most often.
+        - Return at most 15 merges. Prefer high-impact ones (where the duplicates have non-trivial counts).
+        - If you find no clear duplicates, return an empty merges array. That is the correct answer when the list is already clean.
+
+        Output ONLY a JSON object in this exact shape — no prose, no code fences. Names in "from" and "into" must be in their original case (do NOT lowercase):
+
+        {
+          "merges": [
+            { "from": ["J. Smith"], "into": "John Smith", "reason": "abbreviated form" }
+          ]
+        }
+
+        Authors:
+        \(lines.joined(separator: "\n"))
+        """
+    }
+
+    /// Parse the LLM response into AuthorMergeProposal items. Unlike
+    /// `parseMerges` for tags, this preserves the original case of every
+    /// name — "John Smith" stays "John Smith", not "john smith".
+    static func parseAuthorMerges(from raw: String) -> [AuthorMergeProposal] {
+        var working = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if working.hasPrefix("```") {
+            working = String(working.dropFirst(3))
+            if let nl = working.firstIndex(of: "\n") {
+                let lang = working[..<nl].trimmingCharacters(in: .whitespaces).lowercased()
+                if ["json", ""].contains(lang) {
+                    working = String(working[working.index(after: nl)...])
+                }
+            }
+            if let end = working.range(of: "```") {
+                working = String(working[..<end.lowerBound])
+            }
+        }
+        if let first = working.firstIndex(of: "{"),
+           let last = working.lastIndex(of: "}"),
+           first < last {
+            working = String(working[first...last])
+        }
+        guard let data = working.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let arr = obj["merges"] as? [[String: Any]] else { return [] }
+        var out: [AuthorMergeProposal] = []
+        for item in arr {
+            let from = stringArray(from: item["from"])
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            let into = ((item["into"] as? String) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let reason = (item["reason"] as? String) ?? ""
+            guard !into.isEmpty, !from.isEmpty else { continue }
+            // Drop any from-entries that equal the into target (case-insensitively).
+            let filtered = from.filter { $0.lowercased() != into.lowercased() }
+            guard !filtered.isEmpty else { continue }
+            out.append(AuthorMergeProposal(from: filtered, into: into, reason: reason))
+        }
+        return out
+    }
+
+    /// Ask the LLM to propose author merges. Throws if no provider is available.
+    static func proposeAuthorMerges(authors: [(name: String, count: Int)], using provider: Provider) async throws -> [AuthorMergeProposal] {
+        // Cap at top 150 by count to keep the prompt small. Long-tail single-
+        // paper authors are rarely worth merging anyway — drop them.
+        let capped = Array(authors
+            .filter { $0.count > 0 }
+            .sorted { $0.count > $1.count }
+            .prefix(150))
+        let prompt = buildAuthorConsolidatePrompt(authors: capped)
+        let raw: String
+        switch provider {
+        case .claude(let bin, let model):
+            raw = try await runClaude(bin: bin, model: model, prompt: prompt)
+        case .ollama(let model):
+            raw = try await runOllama(model: model, prompt: prompt)
+        case .unavailable:
+            throw TaggerError.noProvider
+        }
+        return parseAuthorMerges(from: raw)
     }
 
     /// Ask the LLM to propose tag merges. Throws if no provider is available.

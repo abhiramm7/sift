@@ -6,6 +6,8 @@ struct SettingsView: View {
 
     @State private var rootPath: String = ""
     @State private var showConsolidate: Bool = false
+    @State private var showConsolidateAuthors: Bool = false
+    @State private var showManageFolders: Bool = false
 
     var body: some View {
         Form {
@@ -153,6 +155,46 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            Section("Folders") {
+                LabeledContent("Folders in library") {
+                    Text("\(store.allFolders.count)").foregroundStyle(.secondary).monospacedDigit()
+                }
+                HStack(spacing: 8) {
+                    Spacer()
+                    Button("Manage folders…") {
+                        showManageFolders = true
+                    }
+                    .disabled(store.allFolders.isEmpty)
+                    .help(store.allFolders.isEmpty
+                          ? "No folders yet — tag papers first."
+                          : "Rename, merge, or remove folders library-wide.")
+                }
+                Text("Folder cleanup is manual on purpose — you know whether \"ML\" should become \"Machine Learning\" better than the LLM does. Renaming a folder to match another's name merges them.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section("Authors") {
+                LabeledContent("Distinct authors") {
+                    Text("\(store.allAuthors.count)").foregroundStyle(.secondary).monospacedDigit()
+                }
+                HStack(spacing: 8) {
+                    Spacer()
+                    Button("Consolidate authors…") {
+                        showConsolidateAuthors = true
+                    }
+                    .disabled(!store.llmProvider.isAvailable || store.allAuthors.count < 4)
+                    .help(store.llmProvider.isAvailable
+                          ? "Ask the LLM to find duplicate author names (\"J. Smith\" vs \"John Smith\") and propose merges."
+                          : "No LLM provider available")
+                }
+                Text("PDFKit metadata often gives the same person under several spellings. This pass merges the obvious ones; it errs on the side of leaving things alone when ambiguous.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Section("About") {
                 let version = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "?"
                 Text("Sift \(version) — collect, tag, rate, recall. Files live in the folder above as plain PDFs and JSON.")
@@ -168,6 +210,14 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showConsolidate) {
             ConsolidateTagsSheet()
+                .environmentObject(store)
+        }
+        .sheet(isPresented: $showConsolidateAuthors) {
+            ConsolidateAuthorsSheet()
+                .environmentObject(store)
+        }
+        .sheet(isPresented: $showManageFolders) {
+            FolderManagementSheet()
                 .environmentObject(store)
         }
     }

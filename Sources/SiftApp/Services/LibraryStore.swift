@@ -420,6 +420,98 @@ final class LibraryStore: ObservableObject {
         Task { await self.rescan() }
     }
 
+    // MARK: - Consolidate authors
+
+    /// Ask the LLM to look at the current author vocabulary and propose merges
+    /// for names that are the same person under different spellings.
+    func proposeAuthorMerges() async throws -> [LLMTagger.AuthorMergeProposal] {
+        let (provider, _) = await LLMTagger.detectProvider(
+            llmPreference, claudeModel: claudeModel, ollamaModel: ollamaModel)
+        guard provider.isAvailable else { throw LLMTagger.TaggerError.noProvider }
+        let authors = allAuthors.map { (name: $0.author, count: $0.count) }
+        return try await LLMTagger.proposeAuthorMerges(authors: authors, using: provider)
+    }
+
+    /// Apply author merges across every paper's `authors[]`. For each merge,
+    /// every occurrence of any `from` name (case-insensitive) is replaced
+    /// with `into` (preserving the target's case). Adjacent duplicates after
+    /// replacement are deduped.
+    func applyAuthorMerges(_ merges: [LLMTagger.AuthorMergeProposal]) {
+        guard !merges.isEmpty else { return }
+        var renames: [String: String] = [:]  // lowercased from → preserved-case into
+        for m in merges {
+            for f in m.from where !f.isEmpty {
+                renames[f.lowercased()] = m.into
+            }
+        }
+        guard !renames.isEmpty else { return }
+
+        for p in papers {
+            let metaURL = config.metadataURL(p.id)
+            guard let data = try? Data(contentsOf: metaURL),
+                  var obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let existing = obj["authors"] as? [String] else { continue }
+
+            let renamed = existing.map { renames[$0.lowercased()] ?? $0 }
+            // Dedup case-insensitively, preserve first-seen casing
+            var seen = Set<String>()
+            var deduped: [String] = []
+            for a in renamed {
+                if seen.insert(a.lowercased()).inserted {
+                    deduped.append(a)
+                }
+            }
+            guard deduped != existing else { continue }
+            obj["authors"] = deduped
+            do {
+                let out = try JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys])
+                try out.write(to: metaURL, options: .atomic)
+            } catch {
+                lastScanError = "Couldn't rewrite \(metaURL.lastPathComponent): \(error.localizedDescription)"
+            }
+        }
+        Task { await self.rescan() }
+    }
+
+    // MARK: - Folder management
+
+    /// Rename or delete a folder library-wide. Touches both `auto.folder`
+    /// (LLM-assigned) and `user_folder` (user override) so the change applies
+    /// regardless of which path put the paper there. Pass nil for `to` to
+    /// clear the folder from every matching paper. If `to` matches an
+    /// existing folder name, this effectively merges the two folders.
+    /// Matching is case-insensitive on the source name.
+    func renameFolder(from oldName: String, to newName: String?) {
+        let oldKey = oldName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !oldKey.isEmpty else { return }
+        let cleaned = newName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newValue: String? = (cleaned?.isEmpty ?? true) ? nil : cleaned
+
+        for p in papers {
+            let autoMatches = (p.auto?.folder?.lowercased() ?? "") == oldKey
+            let userMatches = (p.user_folder?.lowercased() ?? "") == oldKey
+            guard autoMatches || userMatches else { continue }
+            updateMetadata(id: p.id) { obj in
+                if autoMatches {
+                    var auto = (obj["auto"] as? [String: Any]) ?? [:]
+                    if let n = newValue {
+                        auto["folder"] = n
+                    } else {
+                        auto.removeValue(forKey: "folder")
+                    }
+                    obj["auto"] = auto
+                }
+                if userMatches {
+                    if let n = newValue {
+                        obj["user_folder"] = n
+                    } else {
+                        obj.removeValue(forKey: "user_folder")
+                    }
+                }
+            }
+        }
+    }
+
     /// Dedupe-preserving list rename: applies `renames` to each entry and drops
     /// duplicates (case-insensitive) while preserving original order.
     nonisolated private static func renameList(_ list: [String], with renames: [String: String]) -> [String] {
